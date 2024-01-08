@@ -62,6 +62,7 @@ Because it is public, you all can view the contents of this repository
 
 ## Clone your own private repository for doing your homework and your class project
 
+<<<<<<< HEAD
         
 I created these for each of you with your last name. I will add you after you have emailed me your github username
 
@@ -79,6 +80,22 @@ You just ‘cloned’ the CE594_[last_name] Git-hub repository to your local mac
 Now, clone a public repository for general information for the class
 
 
+=======
+ I created these for each of you with your last name. I will add you after you have emailed me your github username
+
+Paste directory URL from Git-Hub site
+
+https://github.com/byu-transpolab/CE594R_data_science_R[last_name]
+
+green “<>code” button
+copy repository URL
+
+Ensure you have pulled most recent code/scripts
+
+You just ‘cloned’ the CE594_[last_name] Git-hub repository to your local machine
+
+Now, clone a public repository for general information for the class
+>>>>>>> 3be17fead8b07e39fd6907fdb8030b39e63600ed
 https://github.com/byu-transpolab/CE594R_data_science_R
 
 Because this is private, only those to whom you give permission will be
