@@ -11,12 +11,15 @@ Show examples of github repositories
 ## Connecting to the R-Script
 
 Install R & R-Studio
-	https://posit.co/download/rstudio-desktop/ 
- 	R installation: https://cran.rstudio.com/ 
-	Select R for proper OS
- 	For Windows -> 
-  		“Install for the first time” ->
-    			“Download R-4.2.3 for Windows”
+https://posit.co/download/rstudio-desktop/ 
+
+R installation: https://cran.rstudio.com/ 
+
+Select R for proper OS
+
+For Windows -> 
+	“Install for the first time” ->
+			“Download R-4.2.3 for Windows”
 			Follow Prompts for setup
 		R-Studio installation: follow setup prompts
 
@@ -35,10 +38,11 @@ See Chapter 7 here: https://happygitwithr.com/hello-git
 
 ## Create an R folder in your documents folder
 
-/user/Documents/Github/
+Such as for me on windows:
+C:\Users\Sonntag\Github
 
 ## Connect Git to R-Studio, and clone public class  repository
-	File->New Project->Version Control->Git
+	File-> New Project-> Version Control->Git
 		Save it in your new Github folder on your computer
 
 Paste directory URL from Git-Hub site
@@ -48,7 +52,7 @@ green “<>code” button
 copy repository URL
 		Ensure you have pulled most recent code/scripts
 
-	You just ‘cloned’ the CE594_[last_name] Git-hub repository to your local machine
+You just ‘cloned’ the CE594R_data_science_R Git-hub repository to your local machine
 
 Because it is public, you all can view the contents of this repository
 
@@ -69,7 +73,7 @@ copy repository URL
 	Now, clone a public repository for general information for the class
 https://github.com/byu-transpolab/CE594R_data_science_R
 
-Because this is private, only those to whom you give permission, will be able to see the contents
+Because this is private, only those to whom you give permission will be able to see the contents
 
 ## Troubleshooting:
 
