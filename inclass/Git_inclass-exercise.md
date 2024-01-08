@@ -12,16 +12,18 @@ Show examples of github repositories
 
 Install R & R-Studio
 	https://posit.co/download/rstudio-desktop/ 
-		R installation: https://cran.rstudio.com/ 
-			Select R for proper OS
-				For Windows -> “Install for the first time” -> “Download R-4.2.3 for
-Windows”
+ 	R installation: https://cran.rstudio.com/ 
+	Select R for proper OS
+ 	For Windows -> 
+  		“Install for the first time” ->
+    			“Download R-4.2.3 for Windows”
 			Follow Prompts for setup
 		R-Studio installation: follow setup prompts
 
 ## Install Git
 Follow Link below. Follow Prompts for setup
-Git - Downloading Package (git-scm.com)
+Git - Downloading Package 
+[git-scm.com](https://git-scm.com/)
 
 ## Create Git-Hub Account
 https://github.com  
