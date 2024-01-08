@@ -26,7 +26,7 @@ Git - Downloading Package (git-scm.com)
 ## Create Git-Hub Account
 https://github.com  
 	Create or login to account
-	Email Dr. Sonntag your username to invite you
+	Email Dr. Sonntag your username to invite your individual class repository
 
 ## Introduce yourself to Git (if you haven’t used Git before)
 See Chapter 7 here: https://happygitwithr.com/hello-git
@@ -35,12 +35,12 @@ See Chapter 7 here: https://happygitwithr.com/hello-git
 
 /user/Documents/Github/
 
-## Connect Git to R-Studio, and clone your class repository
+## Connect Git to R-Studio, and clone public class  repository
 	File->New Project->Version Control->Git
 		Save it in your new Github folder on your computer
 
-## Paste directory URL from Git-Hub site
-		https://github.com/byu-transpolab/CE594R_[last_name]
+Paste directory URL from Git-Hub site
+		https://github.com/byu-transpolab/CE594R_data_science_R
 
 green “<>code” button
 copy repository URL
@@ -48,10 +48,26 @@ copy repository URL
 
 	You just ‘cloned’ the CE594_[last_name] Git-hub repository to your local machine
 
+Because it is public, you all can view the contents of this repository
+
+## Clone your own private repository for doing your homework and your class project
+
+ 	I created these for each of you with your last name. I will add you after you have emailed me your github username
+
+Paste directory URL from Git-Hub site
+
+	https://github.com/byu-transpolab/CE594R_data_science_R[last_name]
+
+green “<>code” button
+copy repository URL
+		Ensure you have pulled most recent code/scripts
+
+	You just ‘cloned’ the CE594_[last_name] Git-hub repository to your local machine
 
 	Now, clone a public repository for general information for the class
 https://github.com/byu-transpolab/CE594R_data_science_R
 
+Because this is private, only those to whom you give permission, will be able to see the contents
 
 ## Troubleshooting:
 
