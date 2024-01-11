@@ -39,9 +39,9 @@ your individual class repository
 
 See Chapter 7 here: <https://happygitwithr.com/hello-git>
 
-## Create an R folder in your documents folder
+## Create a Github folder in your documents folder
 
-Such as for me on windows: C:\Users\Sonntag\Github
+Such as for me on windows: "C:\Users\Sonntag\Github"
 
 ## Connect Git to R-Studio, and clone public class repository
 
