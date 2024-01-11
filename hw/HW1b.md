@@ -3,13 +3,22 @@
 Follow the steps here to install, load, and start swirl. When you are prompted to install a course, you can load “R Programming,” which covers material related to the recent class lectures. 
 
 Please complete the following swirl lessons:
+
 -	Module 7: Matrices and Data Frames
 -	Module 8: Logic
 -	Module 9: Functions
 -	Module 12: Looking at Data
+
 swirl lessons have a mix of base R and tidyverse approaches, so don’t be alarmed or discouraged if you see some unfamiliar techniques or concepts. 
 
-If you are already familiar with this content, select 4 different course such as “lapply“ in R programming, or lessons in other courses such as Exploratory Data Analysis.” Or “Statistical Interference”
+If you are already familiar with this content, select 4 different modules such as:
+
+- “lapply“ in the course “R programming”
+
+or lessons in other courses such as: 
+
+- "Exploratory Data Analysis” 
+- “Statistical Interference”
 
 Information on other swirl courses are here: https://swirlstats.com/students.html
 
@@ -20,6 +29,7 @@ You can install other courses by using the command
 
 Special swirl commands
 In the swirl environment, knowing about the following commands will be helpful:
+
 -	The prompt ... indicates you should press enter to continue in the lesson.
 -	skip(): skip current question
 -	play(): temporarily exit swirl
