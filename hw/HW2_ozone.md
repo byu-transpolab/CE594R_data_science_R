@@ -1,0 +1,31 @@
+# HW2 Ozone analysis
+
+- Conduct your analysis using an Rmarkdown .rmd document
+- Read in the file "Ozone Data_corrected.xlsx" in the hw folder in the public class repository
+  - Call it ozone.data
+  - Use read_excel
+- select the following columns:
+  - House.Number
+  - Visit
+  - Location
+  - ppm
+  - LOD ppm
+- Filter out the rows with House.Number = NA
+- Create a new logical variable called "O3.below.det" (TRUE/FALSE)
+  - Values that are below the detection limit have a "<" sign
+  - TRUE values are when the "ppm" values are below the detection limit
+  - Use the function str_detect() (it's the tidyverse version of grepl in base R)
+- Create a new  variable "O3.ppm" from the ppm variable, convert it to a numeric variable
+- Create a new column called O3.estimate that is the "O3.ppm", or if it is below the detection limit, it is the value of "LOD ppm"
+- Set House.Number, Visit, Location as factors
+- Read in IndoorAir_houseinfo.xlsx as house.info
+  - This includes the type of air conditioner
+  - that identifies the house.type of each home
+- Join the house.info to the measured data
+- Summarize "O3.ppm" and "O3.estimate" including the mean, max, minimum, and number of non-missing measurements grouped by:
+  - location
+  - Type of Air Conditioning
+
+- 
+- reshape the data to a wide format, using pivot_wider
+- 
