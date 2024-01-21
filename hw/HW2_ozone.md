@@ -1,31 +1,44 @@
 # HW2 Ozone analysis
 
-- Conduct your analysis using an Rmarkdown .rmd document
-- Read in the file "Ozone Data_corrected.xlsx" in the hw folder in the public class repository
-  - Call it ozone.data
-  - Use read_excel
-- select the following columns:
-  - House.Number
-  - Visit
-  - Location
-  - ppm
-  - LOD ppm
-- Filter out the rows with House.Number = NA
-- Create a new logical variable called "O3.below.det" (TRUE/FALSE)
-  - Values that are below the detection limit have a "<" sign
-  - TRUE values are when the "ppm" values are below the detection limit
-  - Use the function str_detect() (it's the tidyverse version of grepl in base R)
-- Create a new  variable "O3.ppm" from the ppm variable, convert it to a numeric variable
-- Create a new column called O3.estimate that is the "O3.ppm", or if it is below the detection limit, it is the value of "LOD ppm"
-- Set House.Number, Visit, Location as factors
-- Read in IndoorAir_houseinfo.xlsx as house.info
-  - This includes the type of air conditioner
-  - that identifies the house.type of each home
-- Join the house.info to the measured data
-- Summarize "O3.ppm" and "O3.estimate" including the mean, max, minimum, and number of non-missing measurements grouped by:
-  - location
-  - Type of Air Conditioning
-
-- 
-- reshape the data to a wide format, using pivot_wider
-- 
+-   Conduct your analysis using an Rmarkdown .rmd document
+    -   Display all your R code (make sure echo=TRUE)
+-   Read in the file "Ozone Data_corrected.xlsx" in the hw folder in the public class repository
+    -   Call it ozone.data
+    -   Use read_excel
+-   select the following columns:
+    -   House.Number
+    -   Visit
+    -   Location
+    -   ppm
+    -   LOD ppm
+-   Filter out the rows with House.Number =='BLANK'
+-   Create a new logical variable called "O3.below.det" that contains True or FALSE,
+    -   TRUE values are when the "ppm" values are below the detection limit
+    -   Values that are below the detection limit have a "\<" sign
+    -   Use the function str_detect() (it's the tidyverse version of grepl in base R)
+-   Create a new variable "O3.ppb" from the ppm variable, convert it to a numeric variable, and multiply it by 1000 (to convert from ppm to ppb)
+-   Create a new variable called O3.estimate that is in units of ppb. Set the value to "O3.ppb" , unless the measurement is below the detection limit, then set the value of "LOD ppm"\*1000
+    -   We are imputing (substituting) the missing values with the limit of detention as the maximum possible value
+    -   Use the if_else() function
+-   Set House.Number, Visit, Location as factors
+-   Read in IndoorAir_houseinfo.xlsx as house.info
+    -   This includes the type of air conditioner
+    -   that identifies the house.type of each home
+-   Join the house.info to the measured ozone data
+-   Create a summary table called ozone.data.summary
+    -   Return the total number of measurements, and the number of measurements
+    -   the mean, median, min, and max of "O3.ppb"
+    -   measurements grouped by:
+        -   Location
+        -   Type of Air Conditioner
+            -   Note, because there are spaces in `Type of Air Conditioner` refer to the column using the back apostrophe
+            -   Or rename it with a name with no spaces
+    -   display the ozone.data.summary in a formatted table using kable
+-   Make a wide table with O3.estimate in two separate columns for In and Out locations
+    -   Calculate a new variable called the Indoor/Outdoor ratio which is the indoor O3 concentration divided by the outdoor O3 concentration for each visit.
+    -   Display the equation of the Indoor/Outdoor (I/O) O3 ratio using LaTeX in an equation block. Include the subscript the 3 in O3.
+-   Summarize the Indoor/Outdoor O3 ratio by the type of air conditioning type (Central and Evaporative), including the number of measurements, the mean, median, min and max.
+-   Embed the number and the mean indoor/outdoor ratio for the two types of air conditioners in a sentence or two. Round the mean values to two decimal points.
+    -   The indoor/outdoor ratio for the x visits in the Central Air homes was y.
+    -   The indoor/outdoor ratio for the z visits in the Evaporative Cooler homes was z.
+-   Knit the document to an html document. Make sure to suppress any warning messages in any of the code-chunks
