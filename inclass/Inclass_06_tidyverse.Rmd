@@ -1,0 +1,231 @@
+---
+title: "InClass_06_tidyverse"
+author: "Darrell Sonntag"
+date: "2024-01-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+```
+
+## The tidyverse packages
+
+<https://www.tidyverse.org/packages/>
+
+We will use the tidyverse package commands to manipulate data
+
+Share tidyverse cheat-sheets in class
+
+
+# We will be using our family data.frame we used in our InClass_03_exercise 
+
+You can re-create it here. It has a column called 'name', and a column called 'age'.
+
+
+
+# Make a vector called "age" that stores the ages of those family members in the same order. 
+
+We will start with dplyr
+
+## Piping
+
+In dplyr the symbol %>% is referred to as a pipe. 
+
+> x %>% f(y) becomes f(x,y)
+
+For example, calculate the mean age of your family
+
+
+
+Now do it using the piping function
+
+
+
+Another example, create a subset of the family, to just look at the kids. All the kids under age 20
+
+
+
+Now do this using the piping function
+
+
+
+The cool thing about piping is that we can built upon it. 
+Filter your family to those younger than 20, and just select the names
+
+
+
+
+## introduce joining, bind_rows, bind_cols
+
+create another data.frame called family2 (extended family?)
+
+Have a column called name, and a column called age
+
+
+
+
+Then create a new table by stacking the family and family2 data.frames together using the function bind_rows(). Call it family_extended
+
+
+
+Do the same thing, but use the piping operator %>%
+
+
+
+Create a new data.frame called 'city' with each family name, and their 
+city. Put the extended family names first
+
+
+
+Create a new data frame, called 'family_extended_city' by 
+binding the city to your family_extended using bind_cols()
+
+
+
+Did it work?
+
+Now Create a new data frame, called 'family_extended_city' by 
+joining the city to your family_extended using full_join()
+
+
+
+The rows don't need to be the same length for a join
+Create a data.frame called state.city with a column for city and state. Add at least one extra city state combination.  
+
+
+
+Join family_extended_city with state.city
+
+
+
+Q: Which join to use? (left, right, inner, or full?)
+
+A: 
+
+Q: Which column should did join by?
+
+A: 
+
+Calculate a new column called 'year_born' from the age, using the base R way
+
+
+
+Now calculate 'year_born'  the tidyverse way using mutate
+
+
+
+### if else statements
+
+We could have used an if_else() statement to add the State name.
+Use that approach
+
+
+
+I often like to use joins, rather than using if_else statements, especially if we had lots of city and state combinations. I think a table is easier to use, then a complex if statement. 
+
+##
+
+But there are often cases, where if_else statements make more sense. 
+
+Using an if_else statement to add a column called life_stage with either adult, adolescent, or child as values. Have the life_stage = 'child' if their age is <13, teenager < 20, and adult for 20 and older.
+
+
+
+
+Now go from family, bind family2, join  city and the the state, and add columns year_born, life_stage all in one step using piping %>%
+
+
+
+Other tips, you can arrange rows and relocate columns, 
+Arrange the data by year_born and then age
+Order the columns, using the select statement by name,age,year_born,life_stage,city,state
+
+
+
+
+## What's cool about tidyverse?
+
+- Vectorized functions (don't need to use for or while loops) 
+  - [What are vectorized functions](https://smogdr.github.io/edar_coursebook/rprog4.html)
+- Functions are human readable (join, arrange, mutate)
+- Can write compact code that you can follow
+- Don't need to create intermediate files
+- Don't need to have such long names for my files 
+    - For example, family_extended_city_state isn't needed because there are no longer a bunch of intermediate files
+
+## Summarize functions
+
+Use the summary function to summarize the family_textended_city_state
+
+
+
+
+Calculate the mean using the summarize function
+
+
+Or we could have just calculated the mean by using the mean
+
+
+Q: What's the difference?
+A: 1) summarize returns a data.frame, the mean function returns a value
+   2) summarize can calculate summaries using multiple functions and multiple columns
+
+
+Now calculate the mean age, mean year born, and the number of observations using the summarize statement
+
+
+Now, calculate mean, min, and max age using the summarize
+
+
+## Grouping calculate the average, min and max, and count n(), by by life_stage
+
+Use group_by to calculate the mean, min, and max, group by life stage and city
+
+
+
+
+
+You can group by multiple variables, Now, calculate the mean, min, and max, group by life stage AND city
+
+
+Note about working directories in Rmarkdown
+
+The working directory within each code chunk is by default the location where the .RMD file is saved.
+
+Info on the working directory in .rmd is here:
+
+<https://bookdown.org/yihui/rmarkdown-cookbook/working-directory.html>
+
+To move up two directories use "..\\..\\"
+
+## read in air_passengers.csv data saved in the data folder of the public repository
+
+
+Calculate the mean the passengers by month? Do at least Jan and Feb. 
+
+
+
+What if you wanted to calculate the min, max, sd passengers for each month?
+
+
+Let's first change the format of the table to a long format using pivot_longer() 
+See the tidyr cheat sheet!
+create data.frame air_passengers_long
+
+
+
+Now calculate the max,min, max, and sd for each month from air_passengers_long
+
+
+It worked!... except I don't like how the months ordered
+
+How can we fix that?
+Mutate month using factor(), specify the levels and order of the months
+
+
+
+
