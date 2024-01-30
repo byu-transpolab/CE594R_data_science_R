@@ -1,0 +1,385 @@
+---
+title: "Inclass_07_ggplot2"
+author: "Darrell Sonntag"
+date: "2024-01-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Introduction to Exploratory data analysis
+<https://r4ds.hadley.nz/eda>
+
+
+We are going to plot the data mpg
+
+-- Let's look at the data, structure, and summary of mpg
+
+```{r}
+
+```
+
+
+Some of the initial  text is taken and some of the example code is from Volkens, 2023: 
+<https://smogdr.github.io/edar_coursebook/dataviz.html>
+
+## Steps to create a ggplot2 object
+
+1. Create an object of the ggplot2 class, typically specifying the data and some or all of the aesthetics
+
+2. Add a layer or geom to the plot, along with other specific elements, using +
+
+Aesthetics or aes() in R represent the things that we are plotting: the x and y data. Geoms like geom_point() represent the way in which we layer the aesthetics onto the plot. The geom is the type of plot that we are calling.
+
+
+## Introduction to ggplot2
+
+We will make a bar plot with the counts of each of the vehicles by class. 
+- We will create a ggplot2 object called plot.object
+  - Assign the data to plot
+  - Assign aesthetics (tell R to plot the class on the x-axis)
+- Add geom (Let's add one called geom_bar that plots the number of observations)
+
+
+```{r}
+# use ggplot() to map the data and a single aesthetic (variable = class)
+
+```
+You don't need to assign the graphic to an object. If we just run the code, R will print the object. Just like if we put 2+2. R would print 4 for us. 
+Often we run graphics code just like this:
+
+```{r}
+
+
+```
+
+Let's add another aesthetic
+
+Let's add fill color, to be assigned to the drv variable (front, rear or 4-wheel drive)
+
+
+```{r}
+
+```
+
+Common aesthetics in R:
+
+- x	Variable to plot on x-axis
+- y	Variable to plot on y-axis
+- shape	Shape of the element being plotted
+- color	Color of border of elements
+- fill	Color of inside of elements
+- size	Size of the element
+- alpha	Transparency (1: opaque; 0: transparent)
+- linetype	Type of line (e.g., solid, dashed)
+
+
+## Notes on aes()
+
+Aes arguments can be provided either in the ggplot function, or within the geom_function
+
+```{r}
+# call to ggplot() with aes() specified in main call
+ggplot(data = mpg, aes(x = class, fill = drv)) +
+geom_bar()
+
+# call to ggplot() with aes() specified in geom
+ggplot(data = mpg) +
+geom_bar(aes(x = class, fill = drv))
+
+# call to ggplot() with a mix of aes() mappings 
+ggplot(data = mpg, aes(x = class)) +
+geom_bar(aes(fill = drv))
+
+# call to ggplot() with all mappings in the geom 
+ggplot() +
+geom_bar(data = mpg, aes(x = class, fill = drv))
+
+
+```
+
+What happens if I assign the fill to 'darkgreen' outside the aes()?
+
+```{r}
+# call to ggplot where one `fill` overrides another
+
+```
+
+
+What happens if you put "darkgreen" in the aes?
+
+
+```{r}
+
+```
+Why isn't it green?
+- R maps a character vector called 'darkgreen' to be the object that it gives colors. 
+- Everything in the dataset is matched to 'darkgreen', so MOVES uses the first color is in't default color pallette to all the observations. 
+
+
+
+## uni-variate data
+
+Plot a histogram of the hwy fuel economy for all the vehicles, x= hwy
+
+```{r}
+
+```
+We can look at geom_histogram to find different options
+
+```{r}
+?geom_histogram
+```
+
+We can change the number of bins or the binwidth
+
+```{r}
+
+```
+Set the binwidth to be every 2 mpg
+
+```{r}
+
+```
+Add borders, and change the fill
+
+```{r}
+
+```
+
+Add borders with color to 'blue', and change the fill to be 'lightgrey', and change the background to be black and white
+
+```{r}
+
+```
+
+Add a better label for the x and y
+
+```{r}
+
+```
+
+Change the axis tick marks using Scales, 
+See scale_x_continuous, axis tick marks and labels every 4 mpg
+scale_y_continuous add  number of vehicle models every 10
+
+```{r}
+
+```
+
+## export plots
+
+You really like your plot and want to put it into an email to share with your friend. 
+
+by default ggsave saves the last plot to your working directory
+
+use ggsave to save to a the figs directory within your personal repository
+
+```{r}
+
+```
+
+## density plots
+
+Now make a plot of the hwy fuel economy using the geom_density
+- the y axis is now the distribution, rather than the count
+- make sure you y axis is now labeled as a distribution
+
+```{r}
+
+  
+```
+Add a light-blue fill to the histogram
+
+
+```{r}
+
+```
+ Extend the limits to 0. 
+- Three options:
+1. You can specify limits within + scale_x_continuous(limits = c(0,46))
+2. + coord_cartesian(xlim=c(0,100))
+3. + expand_limits(x=0), this is good if you just want to include 0, or an upper bound. 
+
+- See Zooming on the ggplot cheat sheet
+
+First use scale_x_continuous and zoom out
+
+```{r}
+
+```
+
+- In this case they will all work. 
+
+- What if you wanted to zoom in on the peak between 20 and 30 mpg?
+
+- Use coord_cartesian(xlim=c())
+
+```{r}
+
+```
+- Now set the  limits within scale_x_continuous between 20 and 30
+
+```{r}
+
+```
+- What's the difference between the three plots with different zooms?
+
+- scale_x_continuous can exclude data from your plot if you specify limits that don't include all your data. Then,  geom_density re-calculated the distribution to sum to 1 for just the data between 20 and 30 mpg. 
+
+
+## We can use fill colors to look at the data by different discrete varibles
+
+What do you think could be explaining the two "humps" in the distribution?
+- model year (1999 vs 2008)
+- cars vs. trucks? (class)
+
+Plot two different histograms using different fill colors
+- Let's start with year
+
+names(mpg)
+
+```{r}
+
+```
+Did it work? Why not?
+
+Fill is expecting a factor, not a numeric variable. 
+
+Let's change it. 
+
+```{r}
+
+```
+
+Doesn't look like the model year is it. Let's look at class
+
+
+
+```{r}
+
+```
+Does class explain the multiple humps in the main distribution?
+
+It looks like class is explaining the two humps, pickups and SUVs have the lower fuel economy. However, the plot is quite messy. It's hard to distinguish between the purple in suv (from red and blue overlapping) and the purple in suv. 
+
+## Let's look at a different plots that plot all of the data by class. 
+
+We have been looking at summary plots of our data using historgrams and density plots. 
+
+We can also plot all of our our individual data. 
+
+What are the pro's and cons of plotting all the data?
+
+Pros: 
+- Comprehensive
+- Identify problematic data
+
+Cons:
+- Can be overly complex
+- Difficult to see patterns in the data
+
+<https://smogdr.github.io/edar_coursebook/eda1.html#univariate-data-visualization>
+
+## geom_point
+- class as color
+- class as x-axis
+
+```{r}
+
+```
+## Add jitter to be able to see all the points
+geom_point(position="jitter") 
+
+
+```{r}
+
+```
+Change the jitter width and heigth to a smaller number
+geom_jitter(width=0.3,height=0.3)+
+Options for geom_jitter are here: <https://ggplot2.tidyverse.org/reference/geom_jitter.html>
+
+```{r}
+
+```
+I think it is easier to see trends when the data are ordered. Order the classes from worst to best fuel economy. 
+
+- calculate average hwy by class
+- order the class factor by the fuel economy
+- the plot
+
+
+
+```{r}
+
+```
+### Now let's look at other ways to plot the data, box plots
+
+There's good info on boxplots here: 
+<https://smogdr.github.io/edar_coursebook/eda1.html#box>
+
+```{r}
+
+```
+## Let's break and discuss adjusting the colors scales
+
+Let's say I want to change the colors. For example, the yellow is hard to see on the white background.
+
+Good resources on colors:
+- <https://ggplot2-book.org/scales-colour>
+- <http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/#a-colorblind-friendly-palette>
+
+RColorBrewer::display.brewer.all()
+
+- scale_color_brewer(palette = 'Set1')
+- Change the palette to 'Set1' or 'Paired'
+
+```{r}
+
+
+
+```
+Set manual colors
+R has many colors
+
+<https://www.datanovia.com/en/blog/awesome-list-of-657-r-color-names/>
+See colors()
+
+
+- Set manual colors
+
+scale_color_manual(values=c())
+
+```{r}
+
+
+```
+
+## We can plot multiple layers on top of each other
+
+Plot all the box plots, and then plot all the observations on top using geom_jitter
+
+<https://ggplot2.tidyverse.org/reference/geom_boxplot.html>
+
+```{r}
+
+
+
+```
+## We can also plot different data sets
+
+Plot the raw data (jittered) and the mean value on the same plot with an x for the mean
+geom_jitter
+geom_point(stroke=1)
+
+
+```{r}
+
+
+
+```
+
+
