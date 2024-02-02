@@ -1,0 +1,117 @@
+---
+title: "HW_2_ozone"
+author: "Darrell Sonntag"
+date: "2024-01-20"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readxl)
+library(knitr)
+```
+
+### Read in ozone data into a data.frame called ozone.data
+
+- Select "House.Number","Visit","Location","ppm","LOD ppm"
+- Filter out the rows with House.Number =='BLANK'
+- Create a new column called "O3.below.det" that contains True or FALSE,
+  - TRUE values are when the "ppm" values are below the detection limit
+  - Values that are below the detection limit have a "<" sign
+  - Use the function str_detect() (it's the tidyverse version of grepl in base R)
+- Create a new  variable "O3.ppb" from the ppm variable, convert it to a numeric variable, and multiply it by 1000
+- Create a new variable called O3.estimate that is the "O3.ppb", or if it is below the detection limit, it is the value of "LOD ppm"*1000
+  - We are imputing (substituting) the missing values with the limit of detention as the maximum possible value
+  - Use the if_else() function
+
+
+```{r warning=FALSE, message=FALSE}
+ozone.data<- read_excel("..\\..\\CE594R_data_science_R\\data\\Ozone Data_corrected.xlsx", sheet='Data') %>%
+  select("House.Number","Visit","Location","ppm","LOD ppm") %>%
+  filter(House.Number!='BLANK') %>% ## also could use drop_na() from tidyr
+  mutate(O3.below.det = str_detect(ppm,"<")) %>%
+  mutate(O3.ppb = as.numeric(ppm)*1000) %>%
+  rename(O3.LOD.ppm = "LOD ppm") %>%
+  mutate(O3.estimate = if_else(O3.below.det,O3.LOD.ppm*1000,O3.ppb)) %>% #  Or use the replace_na() function
+  mutate(House.Number = factor(House.Number)) %>%
+  mutate(Visit = factor(Visit)) %>%
+  mutate(Location = factor(Location))
+
+str(ozone.data)
+
+```
+
+### Read in the house.info data, and join it to the ozone.data using 'House.Number', into a new data.frame called ozone.data.info
+
+```{r}
+house.info <- read_excel("..\\..\\CE594R_data_science_R\\data\\IndoorAir_houseinfo.xlsx") 
+              
+ozone.data.info <- ozone.data %>%
+                   left_join(house.info,by=c('House.Number'))
+```
+
+### Create a summary table called ozone.data.summary
+- Return the total number of measurements, and the number of measurements
+- the mean, median, min, and max of "O3.ppb"
+- measurements grouped by:
+  - Location
+  - Type of Air Conditioner
+    - Note, because there are spaces in `Type of Air Conditioner` refer to the column using the back apostrophe
+    - Or rename it with a name with no spaces
+- display the ozone.data.summary in a formatted table using kable
+
+```{r warning=FALSE, message=FALSE}
+ozone.data.summary <- ozone.data.info %>%
+                      group_by(Location,`Type of Air Conditioner`) %>%
+                      summarize(total_n=n(), valid_n = sum(!(O3.below.det)),
+                                mean_O3= mean(O3.ppb,na.rm=T), median_O3 = median(O3.ppb,na.rm=T),min_O3 = min(O3.ppb,na.rm=T), max_O3=max(O3.ppb,na.rm=T))
+
+kable(ozone.data.summary,caption = "Ozone summary",digits=2)
+```
+
+### Make a wide table with O3.estimate in two separate columns for In and Out locations
+
+Calculate a new variable called the Indoor/Outdoor ratio which is the indoor O3 concentration divided by the outdoor O3 concentration for each visit. 
+
+Display the equation of the Indoor/Outdoor (I/O) ratio using LaTeX in an equation block. Include the subset the 3 in O3. 
+
+We used the following equation to calculate the indoor/outdoor ratio. 
+
+$$
+Indoor/Outdoor \: O_3 \: ratio = \frac{Indoor \: O_3 \: Concentration}{Outdoor \: O_3 \: Concentration}
+$$
+
+```{r}
+names(ozone.data.info)
+
+ozone.wide <- ozone.data.info %>%
+              select(-c(ppm,O3.LOD.ppm,O3.below.det,O3.ppb)) %>%
+              pivot_wider(names_from = Location,values_from = O3.estimate) %>%
+              mutate(In_Out_ratio = In/Out) 
+```
+
+### Summarize the Indoor/Outdoor O3 ratio by the type of air conditioning type (Central and Evaporative), including the number of measurements, the mean, median, min and max. 
+
+
+```{r}
+In.Out.summary <- ozone.wide  %>%
+                  group_by(`Type of Air Conditioner`) %>%
+                  summarize(total_n=n(), valid_n = sum(!is.na(In_Out_ratio)),
+                            mean= mean(In_Out_ratio ,na.rm=T), median = median(In_Out_ratio ,na.rm=T),
+                            min = min(In_Out_ratio,na.rm=T), max=max(In_Out_ratio,na.rm=T))
+
+kable(In.Out.summary,caption = "Indoor Outdoor Ratio Ozone summary",digits=2)
+```
+### Embed the number and the mean indoor/outdoor ration for the two types of air conditioners in a sentence or two. Round the mean values to two decimal points. 
+
+The indoor/outdoor ratio for the `r In.Out.summary$total_n[1]` visits in the Central Air homes was `r round(In.Out.summary$mean[1],2)`.
+
+The indoor/outdoor ratio for the `r In.Out.summary$total_n[2]` visits in the Evaporative Cooler homes was `r round(In.Out.summary$mean[2],2)`.
+
+Knit the document to an html document. Make sure to suppress any warning messages in any of the code-chunks
+
+
