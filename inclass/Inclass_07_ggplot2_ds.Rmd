@@ -399,7 +399,7 @@ geom_jitter(width=0.3,height=0.3)+
 Options for geom_jitter are here: <https://ggplot2.tidyverse.org/reference/geom_jitter.html>
 
 ```{r}
-
+data(mpg)
 ggplot(mpg, aes(x=class, y=hwy, color=class))+
           geom_jitter(width=0.3, height=0.3) +
           theme_bw()+
@@ -413,10 +413,21 @@ I think it is easier to see trends when the data are ordered. Order the classes 
 - order the class factor by the fuel economy
 - the plot
 
-
-
 ```{r}
+ave.mpg.class <- mpg %>%
+                 group_by(class) %>%
+                 summarize(ave.mpg = mean(hwy)) %>%
+                 arrange(ave.mpg)
 
+mpg <- mpg %>%
+       mutate(class = factor(class,
+          levels=ave.mpg.class$class,ordered=TRUE))
+
+ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_jitter(width=0.3, height=0.3) +
+          theme_bw()+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')
+   
 ```
 ### Now let's look at other ways to plot the data, box plots
 
@@ -425,6 +436,11 @@ There's good info on boxplots here:
 
 ```{r}
 
+ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_boxplot() +
+          theme_bw()+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')
+   
 ```
 ## Let's break and discuss adjusting the colors scales
 
@@ -441,8 +457,17 @@ RColorBrewer::display.brewer.all()
 - Change the palette to 'Set1' or 'Paired'
 
 ```{r}
+hwy.plot <- ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_boxplot() +
+          theme_bw()+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class') +
+          scale_color_brewer(palette = 'Set1')
+   
+hwy.plot  +
+          scale_color_brewer(palette = 'Spectral')
 
-
+hwy.plot  +
+          scale_color_brewer(palette = 'Paired')
 
 ```
 Set manual colors
@@ -450,7 +475,6 @@ R has many colors
 
 <https://www.datanovia.com/en/blog/awesome-list-of-657-r-color-names/>
 See colors()
-
 
 - Set manual colors
 
@@ -463,7 +487,16 @@ scale_color_manual(values=own.colors))
 
 
 ```{r}
+hwy.plot  +
+          scale_color_manual(values=c("blue", "lightblue", "red", "pink", "orange", "grey", "darkgreen", "purple"))
 
+library(RColorBrewer)        
+own.colors <- brewer.pal(n = 9, name = "Set1")[c(3:9)]       
+
+own.colors
+
+hwy.plot + 
+  scale_color_manual(values = own.colors)
 
 ```
 
@@ -475,6 +508,18 @@ Plot box plots, and then plot all the observations on top using geom_jitter
 
 ```{r}
 
+ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_boxplot(outlier.shape = NA)+
+          geom_jitter(width=0.3, height=0.3) +
+          theme_bw()+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')
+
+
+ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_violin(outlier.shape = NA)+
+          #geom_jitter(width=0.3, height=0.3) +
+          theme_bw()+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')
 
 
 ```
@@ -484,8 +529,14 @@ Plot the raw data (jittered) and the mean value on the same plot with an x for t
 geom_jitter
 geom_point(stroke=1)
 
-
 ```{r}
+ggplot(mpg, aes(x=class, y=hwy, color=class))+
+          geom_jitter(width=0.3, height=0.3) +
+          geom_point(data=ave.mpg.class, aes(y=ave.mpg),shape = 4, size = 3, stroke = 2, color='black')+
+          theme_bw()+
+          scale_color_brewer(palette = 'Paired')+
+          labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')
+
 
 
 
