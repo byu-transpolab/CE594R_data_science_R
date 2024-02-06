@@ -31,7 +31,7 @@ library(knitr)
 
 ```{r warning=FALSE, message=FALSE}
 ozone.data<- read_excel("..\\..\\CE594R_data_science_R\\data\\Ozone Data_corrected.xlsx", sheet='Data') %>%
-  select("House.Number","Visit","Location","ppm","LOD ppm") %>%
+  select("House.Number","Visit","Location","Date Sampled","ppm","LOD ppm") %>%
   filter(House.Number!='BLANK') %>% ## also could use drop_na() from tidyr
   mutate(O3.below.det = str_detect(ppm,"<")) %>%
   mutate(O3.ppb = as.numeric(ppm)*1000) %>%
@@ -114,4 +114,11 @@ The indoor/outdoor ratio for the `r In.Out.summary$total_n[2]` visits in the Eva
 
 Knit the document to an html document. Make sure to suppress any warning messages in any of the code-chunks
 
+## Write the ozone.wide to ozone.I.O.csv 
+
+```{r}
+
+ write.csv(ozone.wide,"..//..//CE594R_data_science_R//data//ozone.I.O.csv",row.names=F)
+
+```
 

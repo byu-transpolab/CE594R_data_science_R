@@ -77,13 +77,13 @@ One of the most important features of our data are the small amount of high emit
 -   Plot DATE on the x-axis
 -   Plot fill color as location
 
-9.  We have just scratched the surface in understanding our dataset. Look into a question that you are curious about the data set?
+9.  We have just scratched the surface in understanding our dataset. Look into a question that you are curious about the data set. 
 
--   How do vehicle emissions vary by fuel type, model year, acceleration, speed, or multiple of these factors
--   Make a graph that addresses your question?
+-   For example, How do vehicle emissions vary by fuel type, model year, acceleration, speed, or a combination of these factors?
+-   Make a graph that addresses your question
 -   What did you find?
 
-10. Extra Credit Challenge
+10. Extra Credit Challenge (+1 pt)
 
 What contribution do the highest emitters contribute to the total emissions?
 
