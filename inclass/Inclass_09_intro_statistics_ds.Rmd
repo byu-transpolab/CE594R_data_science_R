@@ -1,0 +1,351 @@
+---
+title: "Inclass_09"
+author: "Darrell Sonntag"
+date: "2024-02-04"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+```
+
+Objectives: 
+- load in ozone data
+- create simple plots
+- Calculate 95% confidence intervals of the mean I/O
+- Evaluate assumptions for 95% confidence intervals, and make adjustments if needed to the data
+- Conduct a t-tests on the significance of the differences
+- Create plots with error bars
+- Create bivariate plot with UDAQ data, add in linear model fit
+- Include linear correlation plot
+
+- read in the ozone.wide data that we created in HW3. 
+- Read in my version, just to make sure there are not differences with how they did it for the homework
+
+```{r}
+
+
+ozone.wide <- read_csv("..//..//CE594R_data_science_R//data//ozone.I.O.csv")
+
+```
+
+
+Plot the average indoor/outdoor ratio with a separate panel for the homes with different Type of Air Conditioners
+- Use the ozone.wide dataframe from HW_2 ozone
+- Let's read in the same data, so that we are all working from the same observation
+- On the x-axis have each home  
+- Jitter the points so you can see where there multiple visits from one house
+
+
+names(ozone.wide)
+```{r}
+
+ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=`Type of Air Conditioner`)) + 
+  geom_jitter(size=2,alpha=0.9,width=0.2,pch=21,color='black')+
+  theme_bw()+
+   labs(x='House', y= 'I/O')+
+  facet_grid(.~`Type of Air Conditioner`, scales='free') +
+  coord_cartesian(ylim = c(0, 1)) +
+  scale_y_continuous(breaks=seq(0,1,.20))+
+  theme(legend.position = 'blank')+
+  theme(axis.text.y = element_text(size=9),axis.text.x = element_text(angle = 90,vjust =0.5, size=8))
+     
+
+```
+
+
+Sort the House IDs by the size of the mean I/O ratio
+
+```{r}
+names(ozone.wide)
+
+## Calculate means
+
+ave.io.house <- ozone.wide %>%
+                group_by(House.Number) %>%
+                summarize(avg.io = mean(In_Out_ratio),
+                          n_visit = n()) %>%
+                arrange(avg.io)
+
+
+
+## Make House.Number be a factor, ordered according to the levels of the average indoor outdoor ratio
+
+ozone.wide <- ozone.wide %>%
+              mutate(House.Number = factor(House.Number, levels = ave.io.house$House.Number, ordered = TRUE))
+
+ozone.wide <- ozone.wide %>%
+              mutate(House.Number = fct_reorder(House.Number, In_Out_ratio, .fun=mean))
+
+?fct_reorder
+
+ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=`Type of Air Conditioner`)) + 
+  geom_jitter(size=2,alpha=0.9,width=0.2,pch=21,color='black')+
+  theme_bw()+
+   labs(x='House', y= 'I/O')+
+  facet_grid(.~`Type of Air Conditioner`, scales='free') +
+  coord_cartesian(ylim = c(0, 1)) +
+  scale_y_continuous(breaks=seq(0,1,.20))+
+  theme(legend.position = 'blank')+
+  theme(axis.text.y = element_text(size=9),axis.text.x = element_text(angle = 90,vjust =0.5, size=8))
+
+
+
+
+```
+Replot
+
+```{r}
+
+
+     
+
+```
+
+```{r}
+ggsave(".//inclass//ozone.indoor.outdoor.png", width=6.5, height=4, units="in")
+```
+ 
+Calculate the mean of the two distributions and calculate 95% confidence intervals of the mean using the t-distribution 
+
+$$
+\bar{x}\,\pm t_{\alpha/2,n-1} \, \cdot \frac{s}{\sqrt{n}}
+$$
+Use a group_by and summarize
+Calculate the t-critical value using
+mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided 
+
+Print the table using kable
+
+```{r}
+#ozone.wide <- ozone.wide %>%
+ #             rename(ac.type = `Type of Air Conditioner`)
+
+
+
+ave.io.type <- ozone.wide %>%
+               group_by(ac.type) %>%
+               summarize(ave.io = mean(In_Out_ratio, na.rm=TRUE),
+                         sd = sd(In_Out_ratio),
+                         n = sum(!is.na(In_Out_ratio))) %>%
+                mutate(tcrit = qt(.975,df=(n-1))) %>%
+                mutate(bound = tcrit * sd/sqrt(n)) %>%
+                mutate(lower.bound = ave.io - bound) %>%
+                mutate(upper.bound = ave.io + bound) 
+              
+            
+
+```
+
+
+Plot the means with the confidence intervals
+- Use geom_col for the means
+- Use geom_errorbar for the confidence intervals
+
+```{r}
+
+ggplot(data=ave.io.type, aes(x=ac.type, y=ave.io, fill=ac.type)) +
+  geom_col()+
+  geom_errorbar(aes(ymin = lower.bound, ymax = upper.bound), width=0.3)
+
+```
+
+Are mean I/O ratio between the two types of homes significantly different?
+
+Are there any issues with our assumptions on the error bars?
+
+- t-distribution
+Good overview here (or a statistics text book)
+  <https://canvas.harvard.edu/files/1170856/download?download_frd=1>
+- We assume the our population is approximately normal (although the t-distribution is fairly robust to departures of normality if our n is large)
+  - What is our N?
+  
+  
+- How can we evaluate if our observations are approximately normal? 
+
+- We can plot the data-- histogram?
+
+
+```{r}
+
+
+```
+
+- What other plots? quantile-quantile plot
+  
+- What is a Normal qqplot?
+
+<https://library.virginia.edu/data/articles/understanding-q-q-plots>
+
+-  You plot the standard normal values (z-scores) on the x-axis for each percentile point (depends on your n)
+-  You plot the actual value on the y. 
+-  If it is from a normal distributions, the values should approximately fall on a line
+
+- For example: 
+- Look at 9 randomly generated samples from a normal distribution of 50 observations
+- from  Julian J. Faraway. Linear Models with R. Chapman and Hall/CRC, 2014.
+- Available at the BYU library
+
+
+```{r}
+
+# use the base R functions qqnorm and qqline to plot a Normal q-q plot for a set of data
+n <- 50
+par(mfrow=c(3,3))
+for(i in 1:9) {x <- rnorm(n); qqnorm(x); qqline(x)}
+
+```
+
+### "Homemade' qq plot
+
+filter just the 'AC' homes
+
+Arrange my data from smallest to largest In_Out
+Add an order sequene
+Calculate the percentile of hte order
+Calculate the z_score using qnorm(percentile)
+
+plot the z-score on the x-axis, and the In_Out_ration on the y
+
+
+```{r}
+ozone.wide.AC <- ozone.wide %>%
+                 filter(`Type of Air Conditioner` == 'Central') %>%
+                 arrange(In_Out_ratio) %>%
+                 mutate(ord = seq(1:n())) %>%
+                 mutate(percentile = ord/(n()+1)) %>%
+                 mutate(z_score = qnorm(percentile)) ## This calculates the z-score depending on the percentiles, or the inverse of the quantile density function
+                 
+ggplot(ozone.wide.AC, aes(x=z_score,y=In_Out_ratio)) +
+    geom_point()    
+
+```
+
+# Use ggplot functions
+
+<https://ggplot2.tidyverse.org/reference/geom_qq.html>
+
+```{r}
+ozone.wide.AC <- ozone.wide %>%
+                 filter(`Type of Air Conditioner` == 'Central') %>%
+                 arrange(In_Out_ratio) %>%
+                 mutate(ord = seq(1:n())) %>%
+                 mutate(percentile = ord/(n()+1)) %>%
+                 mutate(z_score = qnorm(percentile)) ## This calculates the z-score depending on the percentiles, or the inverse of the normal cumulative distribution function 
+ggplot(ozone.wide.AC, aes(x=z_score,y=In_Out_ratio)) +
+    geom_point()+
+    labs(title = 'Normal q-q plot')
+
+```
+## Let's use the ggplot functions
+
+<https://ggplot2.tidyverse.org/reference/geom_qq.html>
+
+assign the plot to be qq
+
+```{r}
+
+```
+- Do the data appear to be normally distributed?
+- Central visits looks better than Evaporative visits.
+- Also could be an issue of the small sample size. 
+
+- For now, I'm going to assume that the distribution is approximately normal
+
+- We can have two plots side by side
+
+<https://ggplot2-book.org/arranging-plots>
+
+```{r}
+library(patchwork)
+
+hg + qq + plot_layout(ncol = 1)
+
+
+```
+
+What other assumptions do we have?
+  <https://canvas.harvard.edu/files/1170856/download?download_frd=1>
+
+- We assumed that our observations were independent random observations from the same population
+- Is that true?
+
+- Are data are not independent observations from the same population. We have several repeat observations from the same homes. These observations appear correlated to one another 
+- they are clustered together on the graph
+- 
+
+- Let's say  we kept kept re-sampling I/O ratios from the same homes (perhaps each home 100 times). So our N became very large. What would happen to our confidence intervals? Because our observations are 
+- Decrease by a factor of 1/sqrt(n). 
+- then our confidence intervals. However, we still would be limited to the same number of homes.... W
+- Would would have more confidence in the 30 homes we sampled, but would we have a much better estimate of mean I/O ratio for all homes in the population? 
+- No-- because we are still sampling the same 30 homes, we haven't expanded our sample
+
+
+- Also, could there be any relationship of the observations with Date Sampled?
+- hmm. it does seem like there is some correlation among observations occurring on the same day, for the Central AC homes...
+- However, there doesn't seem like a systematic trend across time. 
+- Also, I'm less considered about the Central AC homes because these are 'worst case scenarios' typically the values were below the detection limit
+- I'm going to ignore it because it will take more complex methods to address both.
+- This could be a real issue. What if there was a strong impact of the date sampled, and it so happened that we measured the Evaporative homes on days with high outdoor ozone, that tended to have higher I/O ratios than the evaporative cooler days?
+
+```{r}
+ozone.wide <- ozone.wide %>%
+      mutate(year = year(`Date Sampled`))
+
+
+ggplot(data = ozone.wide,aes(x = `Date Sampled`, y = In_Out_ratio,fill=`House.Number`)) + 
+  geom_jitter(size=2,alpha=0.9,width=0.2,pch=21,color='black')+
+  theme_bw()+
+   labs(x='House', y= 'I/O')+
+  facet_grid(`Type of Air Conditioner`~ year, scales='free') +
+  expand_limits(y=0)+ 
+  theme(axis.text.y = element_text(size=9),axis.text.x = element_text(angle = 90,vjust =0.5, size=8))
+   
+
+```
+
+How can we remove the dependence within our data set with multiple observations from each home?
+- Just keep the first measurement from each home. 
+  - Throw away all the follow up measurements? 
+- Calculate the mean from each home, treat that as our random variable
+  - Each mean of the home, can be considered a random sample, with independent and identically distributed (iid) observations
+
+
+```{r}
+
+```
+
+Now calculate the average of the averages, and a 95% confidence intervals
+
+Print the table using kable
+
+```{r}
+
+
+```
+Plot the means with the confidence intervals
+- Use geom_col for the means
+- Use geom_errorbar for the confidence intervals
+
+```{r}
+
+```
+
+Calculate a two-sided t-test
+
+?t.test
+```{r}
+
+
+```
+We can extract information from the t.test.ozone object, such as the p-value
+
+```{r}
+
+```
+
+
