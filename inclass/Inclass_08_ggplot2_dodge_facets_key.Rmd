@@ -1,0 +1,414 @@
+---
+title: "Inclass_08_ggplot2_dodge_facets"
+author: "Darrell Sonntag"
+date: "2024-01-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+theme_set(theme_bw()) ## we can set the theme here globally
+```
+### Objectives:
+- Plot 1 continuous variable + 2 discrete variables
+  - Make new variables
+  - Dodge
+  - Faceting
+- Plot 2 continuous variables
+  - Include linear model fits
+- Plot many plots in a loop
+- Plus ggplot formatting 
+
+
+## housekeeping
+We will create a large pdf file in this exercise. Let's have git ignore updates to those files, so we don't store them on the cloud
+
+Add the following to your .gitignore files in your repository
+*.csv
+*.pdf
+*.xlsx
+
+Commit and push your updates. 
+
+Info about .gitignore is here: 
+
+<https://www.freecodecamp.org/news/gitignore-what-is-it-and-how-to-add-to-repo/#:~:text=gitignore%20file%20is%20a%20text,can%20also%20create%20a%20global%20.>
+
+
+## One continuous variable + 2 discrete variables
+
+Let's look some more at the mpg data set. 
+
+It's clear that class is much more important than model year. 
+
+But, is there an improvement in fuel economy between 1999 and 2008? 
+
+Can we see if there an impact of model year, once we account for the vehicle class?
+
+
+## Option 1:  Create a new variable that combines class and year call it class_year
+
+## then use the same code we had before to plot the points and the box plots, but use class_year as the x variable
+
+```{r}
+mpg <- mpg %>%
+        mutate(class_year = paste(class,year,sep=" "))
+
+ggplot(data = mpg, aes(x=class_year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+   scale_color_brewer(palette = 'Paired')
+
+```
+Q: Did it work?
+
+A: Yes the data are now divided by model year and class
+
+Q: What didn't work well?
+
+A: The axis labels
+
+Adjust the theme()
+
+A comprehensive list of items to change with the theme are listed here: 
+
+<https://ggplot2.tidyverse.org/reference/theme.html>
+
+Some short examples on changing the angle of text are here: 
+
+<https://ggplot2.tidyverse.org/articles/faq-axes.html>
+
+Or just google your question: 
+
+```{r}
+mpg <- mpg %>%
+        mutate(class_year = paste(class,year,sep=" "))
+
+ggplot(data = mpg, aes(x=class_year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  theme_bw()+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+   scale_color_brewer(palette = 'Paired') +
+  theme(axis.text.x = element_text(angle=90,vjust = 0.4)) ## vjust and hjust changes the relative spacing of the axis labels
+
+```
+### Option 2 Use Position Adjustments - Dodge
+Use the position dodge to put the fuel economy side by side without needing to create a new variable 
+
+Assign x to class
+Assign color to year
+Make year a factor (so it can be assigned to a discrete scale)
+
+
+```{r}
+mpg <- mpg %>%
+       mutate(year = factor(year))
+
+ggplot(data = mpg, aes(x=class, y = hwy, color= year)) + 
+  geom_boxplot(position='dodge')+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+   scale_color_brewer(palette = 'Set1')
+
+
+```
+Note there is a way to dodge jittered points. But this is good enough for now. 
+<https://ggplot2.tidyverse.org/reference/position_jitterdodge.html>
+
+### Option 3. Facets
+
+Separate facets for each class, 
+
+X axis is model year
+
+Have separate columns for each class
+
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_grid(.~class)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') 
+  
+
+```
+
+
+Separate rows for each class
+
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_grid(class~.)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') 
+  
+```
+
+Now plot facets with columns for class, and drv on the rows
+
+
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_grid(drv ~ class)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') 
+  
+
+```
+You can also specify the variable for the cols and rows. 
+You need to use vars() when specifying the column. (Don't ask me why)
+This time put class in column, and cyl in the rows. 
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_grid(cols = vars(class), rows=vars(cyl))+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') 
+  
+
+```
+
+
+## facet_wrap
+
+Just graph the facets by one variable, but it wraps from one row to the next 
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_wrap(~ class)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') 
+  
+
+```
+
+Use Facet wrap again, but this time, zoom into each dataset. 
+Use scales = 'free_y'
+And get rid of the legend since it is redundant
+
+```{r}
+
+ggplot(data = mpg, aes(x=year, y = hwy, color= class)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_jitter(width=0.3,height=0.3)+
+  facet_wrap(~ class,scales='free_y')+
+  labs(y='Highway Fuel Economy, mi/gal', x='Vehicle Class')+
+  scale_y_continuous(breaks = seq(0,46,by=4))+
+  scale_color_brewer(palette = 'Paired') +
+  theme(legend.position = 'none')
+  
+```
+
+### Two continuous variable
+
+Let's look at the relationship between hwy fuel economy and engine displacement, displ
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy, color= class)) + 
+  geom_point()+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+
+```
+
+### Stats - Fit a trend line
+
+Start with a simple linear regression
+Remove the colors to start
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy)) + 
+  geom_point()+
+  stat_smooth(method='lm',formula=y ~ x)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+
+```
+
+Add in the colors for class. 
+What happens?
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy,color=class)) + 
+  geom_point()+
+  stat_smooth(method='lm',formula=y ~ x)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+
+```
+
+What if I want separate colors for the class but just one smoothing line?
+
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy)) + 
+  geom_point(aes(color=class))+
+  stat_smooth(method='lm',formula=y ~ x)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+
+```
+
+
+
+There are different smoothing options. 
+
+See here: <https://ggplot2.tidyverse.org/reference/geom_smooth.html>
+
+Including loess
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy)) + 
+  geom_point(aes(color=class))+
+  stat_smooth(method='loess',formula=y ~ x)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+
+```
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy)) + 
+  geom_point(aes(color=class))+
+  stat_smooth(method='loess',formula=y ~ x, span = 5)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+```
+
+## Is fuel economy getting better when you take into account changes in displacement (power)
+- model year 
+- vehicle class
+- engine displacement
+
+We are most interested in model year, so keep that difference in each plot
+
+Plot vehicle class in facets
+Plot engine displacement on the x-axis
+
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy,color=year)) + 
+  geom_point()+
+  stat_smooth(method='loess',formula=y ~ x, span = 5)+
+  facet_wrap(~class)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+```
+Observations: Perhaps, but there is a slight improvement in fuel economy in some classes, but not others
+
+
+## What if we are interested in indivudal models?
+
+Let's make individual plots for each make and model. 
+Each plot shows the hwy fuel economy, model year, the displacement of the engine, 
+
+```{r}
+ggplot(data = mpg, aes(x=displ, y = hwy,linetype=factor(year) )) + 
+  geom_point(aes(color=model))+
+  stat_smooth(method='loess',formula=y ~ x, span = 5)+
+  facet_wrap(~class)+
+    labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters')
+```
+
+### Subset your data
+
+If is often not possible to plot all of your data effectively on one page. 
+Especially if you are looking at detailed data, or conducting qa of your data. 
+
+For example, we want to understand how individual models changed fuel economy between 1999 and 2008, and if it was because they had different engine displacement. . 
+
+If we tried to plot this on one plot it could be overwhelming.
+
+Let's subset our data to look at one model, civic
+Let's give color and shape equal to model year 
+Let's set alpha=0.5, and have a smaller jitter, so we can see overlapping point)
+
+
+
+```{r}
+data.i <- filter(mpg, model == 'civic')
+
+ggplot(data = data.i, aes(x=displ, y = hwy, color=year,shape=year)) + 
+  geom_jitter(size=3,alpha=.5,width=.02,height=.02)+
+  labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters',title=paste(data.i$manufacturer[1],data.i$model[2],sep=" "))
+```
+### For loops
+
+I would like a plot like the above for all of my models. 
+However, even with faceting they won't all show up. 
+
+Let's create a function, and a for loop to plot all the vehicle models
+
+Reminder on functions here: <https://intro2r.com/functions-in-r.html>
+
+
+
+data.i <- filter(mpg, model == 'civic')
+
+```{r}
+plot_mpg <- function(data.i){
+              
+            plot.mpg <- ggplot(data = data.i, 
+              aes(x=displ, y = hwy, color=year,shape=year)) + 
+              geom_jitter(size=3,alpha=.5,width=.02,height=.02)+
+              labs(y='Highway Fuel Economy, mi/gal', x='Engine Displacement, Liters',title=paste(data.i$manufacturer[1],data.i$model[2],sep=" "))
+            
+            plot(plot.mpg)
+            }
+
+```
+
+
+Now do a loop for each of the models
+
+Information on loops is here
+<https://intro2r.com/loops.html>
+
+```{r}
+models <- unique(mpg$model)
+
+length(models)
+
+for (i in 1:length(models)) {
+  data.i <- filter(mpg,model==models[i])
+  plot_mpg(data.i)
+      }
+
+```
+
+### Export multiple figures to a pdf document
+
+See more here: <https://bookdown.org/ndphillips/YaRrr/saving-plots-to-a-file-with-pdf-jpeg-and-png.html>
+
+```{r}
+pdf(file="./figs/model.disp.year.mpg.pdf")
+
+models <- unique(mpg$model)
+
+length(models)
+
+for (i in 1:length(models)) {
+  data.i <- filter(mpg,model==models[i])
+  plot_mpg(data.i)
+      }
+
+dev.off()
+```
+
+
+
+
