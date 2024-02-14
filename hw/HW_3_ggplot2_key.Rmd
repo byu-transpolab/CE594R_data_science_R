@@ -1,0 +1,314 @@
+---
+title: "HW_3_ggplot2_ozone"
+author: "Darrell Sonntag"
+date: "2024-01-23"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+HW3
+- emissions data
+- good for looking at distributions
+- plot cumulative function
+- bars
+
+HW4
+- ozone data
+- good to show the data that we put together for homework
+- pattern recognition
+- simple plots, conduct t-tests on the significance of the differences
+- bivariate plot with UDAQ data
+
+HW5
+- sidepak data
+- need to introduce loops for reading in data
+- good for showing functions
+- R2 from linear fits...
+
+HW6
+- emissions data resampling
+
+HW7 predictions
+- Last homework??
+
+
+## 1. Read in emissions data using read_csv
+
+```{r}
+emissions.data <- read_csv('../../CE594R_data_science_R/data/emissions_data.csv')
+```
+
+## 2. Reshape the data into long format
+
+```{r}
+emissions.data.long <- emissions.data %>%
+                       pivot_longer(cols=CO_g_kg:NO2_g_kg,names_to='Pollutant',values_to='er')
+
+```
+
+## 3. Graph all the data
+Plot the points with the emission rates on the y axis and the time on the x-axis. 
+Create separate plots for each day and pollutant, either using faceting or creating separate figures by date or by pollutant
+
+```{r}
+ggplot(emissions.data.long, aes(x=TIME,y=er,color=Pollutant)) +
+  geom_point() +
+  facet_grid(Pollutant~DATE, scales='free_y') +
+  labs(y='Emission rate g/kg', x= 'Time') +
+  theme(legend.position = 'blank') 
+
+```
+
+### Questions: 
+  - Does there appear to be any systematic drift or trend in the emissions across time?
+    - No, the data appear to be centered near zero for all the pollutants, with large positive outliers scattered throughout the day
+  
+  - Are there any periods where we have missing data?
+    - Yes, we have a period between 11 am and 1 pm on 7/12/2022 with missing data
+
+## 4. Histograms -  What is the distribution of the emissions data for each pollutant?
+    - Make a histogram for the emission rate for each pollutant
+    - Use facet_grid or facet_wrap to display each pollutant separately 
+    - With the scales appropriate to see the data
+    - Adjust the number of bins or the bindwidth or to display the data well v
+    - Choose fill colors to display the data well
+
+```{r}
+ggplot(emissions.data.long, aes(x=er,fill=Pollutant)) +
+  geom_histogram(bins=40) +
+  facet_wrap(~Pollutant, scales='free') +
+  labs(x='Emission rate g/kg') +
+  theme_bw() + 
+  theme(legend.position = 'blank') 
+
+```
+
+- Questions:
+  - Describe the distribution of the emission rates?
+  
+    - The emissions are all strongly right hand-skewed 
+  - How do the distributions vary among the differ among pollutants?
+
+  - CO, NH3, and NO are more strongly skewed than HC and NO2. 
+5. Distribution (continued) - Density plots
+    - Make density plot for each of the pollutants
+    - Customize the plot to make it look nice
+
+```{r}
+ggplot(emissions.data.long, aes(x=er,fill=Pollutant))+
+  geom_density(alpha=0.5) +
+  facet_wrap(~Pollutant, scales='free') +
+  labs(x='Emission rate g/kg') +
+  theme_bw()+
+  theme(legend.position = 'blank') 
+
+```
+
+
+6. Distribution (continued) - Box plots
+    - Create box plots with a separate panel for each pollutant, and the date on the x-axis
+
+```{r}
+
+ggplot(emissions.data.long, aes(x=DATE,y=er,fill=Pollutant))+
+  geom_boxplot() +
+  facet_wrap(~Pollutant, scales='free') +
+  labs(y='Emission rate g/kg', x='Date') +
+  theme_bw()+
+  theme(legend.position = 'blank') 
+
+```
+- Is the box plot a good plot for comparing the distribution of pollutant between dates?
+- Why or why not?
+- 
+
+7. Create Cumulative Distribution Plots
+
+One of the most important features of our data are the small amount of high emitting vehicles. They are difficult to see in the histogram and density plots. Let's try a cumulative distribution plot. 
+
+- Create a new df from emissions.data.long
+- Filter to one pollutant
+- Filter out any missing values
+- Arrange the df from smallest to largest
+- Calculate the cumulative fraction of each observation
+  - Look here: <https://smogdr.github.io/edar_coursebook/eda1.html#cumulative-distribution-plot>
+
+
+```{r}
+emissions.data.ordered <- emissions.data.long %>%
+                          filter(Pollutant == 'NO2_g_kg') %>%
+                          filter(!is.na(er)) %>%
+                          arrange(er) %>%                        mutate(cum_pct=seq(from=1/length(er),to=1,by=1/length(er))) 
+
+
+```
+
+- Then plot a cumulative distribution plot for one of the pollutants
+  - Use geom_point 
+
+```{r}
+ggplot(emissions.data.ordered, aes(x=er,y=cum_pct, color=Pollutant)) +   geom_point()
+  labs(y='Emission rate g/kg') 
+
+```
+Create a for loop that creates one dataframe called emissions.data.ordered.all that has the cum_pct calculated for each of the pollutants
+<https://intro2r.com/loops.html>
+
+
+```{r}
+emissions.data.ordered.all <- data.frame()
+
+unique.pollutant <- unique(emissions.data.long$Pollutant)
+
+for (i in 1:5) {
+
+     data.i<- emissions.data.long %>%
+                          filter(Pollutant == unique.pollutant[i]) %>%
+                          filter(!is.na(er)) %>%
+                          arrange(er) %>%                        mutate(cum_pct=seq(from=1/length(er),to=1,by=1/length(er))) 
+
+     emissions.data.ordered.all<- bind_rows(data.i,emissions.data.ordered.all)
+
+}
+```
+
+- Now graph the cumulative distribution plot for each pollutant using facets
+
+```{r}
+ggplot(emissions.data.ordered.all, aes(x=er,y=cum_pct, color=Pollutant)) +  
+  geom_point() +
+  labs(y='Emission rate g/kg') +
+  facet_wrap(~Pollutant, scales='free') +
+  labs(x='Emission rate g/kg', y='Cumulative Fraction') +
+  theme_bw()+
+  theme(legend.position = 'blank') +
+  scale_y_continuous(breaks = seq(0,1,.2))
+
+```
+Question:
+Which pollutants are the most skewed?
+
+- Now repeat the plot from emissions.data.long using 
+stat_ecdf(geom='point')
+- Did you get the same graph using stat_ecdf?
+- Was it easier?
+
+```{r}
+
+ggplot(emissions.data.long, aes(x=er,color=Pollutant))+
+  stat_ecdf(geom='point')+
+  facet_wrap(~Pollutant, scales='free') +
+  labs(x='Emission rate g/kg', y='Cumulative Fraction') +
+  theme_bw()+
+  theme(legend.position = 'blank') +
+  scale_y_continuous(breaks = seq(0,1,.2))
+
+```
+
+7. Column Plot - mean of the emission rate by pollutant and date and location.  
+  - Calculate the mean emission rate by date, location and pollutant
+  - Use group_by and the summarize function to create a new summary dataframe
+  - Plot different facets for each pollutant
+  - Plot DATE on the x-axis
+  - Plot fill color as location
+
+  
+```{r}
+
+loc.sum <- emissions.data.long %>%
+           group_by(DATE,location,Pollutant) %>%
+           summarize(mean.er = mean(er,na.rm=T))
+                     
+
+ggplot(loc.sum, aes(x=DATE,y=mean.er,fill=location))+
+  geom_col() +
+  facet_wrap(~Pollutant, scales='free') +
+  labs(y='Emission rate g/kg', x='Date') +
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=90,vjust = 0.4)) ## vjust and hjust changes the relative spacing of the axis labels
+
+``` 
+
+
+8. We have just scratched the surface in understanding our dataset. Look into a question that you are curious about the data set?
+- How do vehicle emissions vary by fuel type, model year, acceleration, speed, or multiple of these factors 
+- Make a graph that addresses your question?
+- What did you find?
+
+
+```{r}
+ggplot(emissions.data, aes(x=CO_g_kg,y=NH3_g_kg))+
+  geom_point()+
+  geom_smooth(method=lm, formula = y~x) +
+  theme_bw()
+
+```
+
+What about quantile regression? Does the highest 90% of 
+
+```{r}
+ggplot(emissions.data, aes(x=CO_g_kg,y=NH3_g_kg))+
+  geom_point()+
+  geom_quantile(quantiles = c(0.1, 0.5, 0.9), size = 2) +
+  theme_bw()
+
+```
+Results
+- the upper quantile of vehicles has a stronger relationship between NH3 and CO, than the mean estimated through normal regression. 
+
+
+9. Extra Credit Challenge
+
+What contribution do the highest emitters contribute to the total emissions? 
+Can you- recreate the following graph?
+
+In this case, set all negative emission rates = 0. 
+Calculate the contribution each vehicle contributes to the total, when ordered from highest emitting to lowest emitting
+
+```{r}
+emissions.data.ordered.total <- data.frame()
+
+unique.pollutant <- unique(emissions.data.long$Pollutant)
+
+for (i in 1:5) {
+
+     data.i<- emissions.data.long %>%
+                mutate(er.pos = if_else(er<0,0,er)) %>%
+                filter(Pollutant == unique.pollutant[i]) %>%
+                filter(!is.na(er)) %>%
+                arrange(-er.pos) %>%
+                mutate(cum_pct=seq(from=1/length(er.pos),to=1,by=1/length(er.pos))*100) %>%  
+                mutate(er_cumsum= cumsum(er.pos)/sum(er.pos,na.rm=T)*100) 
+
+       
+     emissions.data.ordered.total <- bind_rows(data.i,emissions.data.ordered.total)
+
+}
+```
+
+Plot the results. Can you re-create the following figure?
+
+```{r}
+ggplot(emissions.data.ordered.total,aes(x=cum_pct,y=er_cumsum,color=Pollutant)) +
+  geom_step(size=1)+
+  scale_color_brewer(palette="Set1")+
+  scale_x_continuous(breaks = seq(0,100,20))+
+  theme_bw()+
+  labs(y='Contribution to the total emissions', x= 'Vehicle Percentile')+
+  theme(axis.text.x = element_text(size=10), axis.text.y = element_text(size=12),
+        axis.title = element_text(size = 16),plot.title = element_text(size = 18),
+        legend.text = element_text(size = 14))  
+
+ggsave('../figs/emissions.contribution.png')
+```
+
+
+
+
