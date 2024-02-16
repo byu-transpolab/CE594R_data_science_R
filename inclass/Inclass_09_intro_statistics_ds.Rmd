@@ -28,8 +28,7 @@ Objectives:
 
 ```{r}
 
-
-ozone.wide <- read_csv("..//..//CE594R_data_science_R//data//ozone.I.O.csv")
+ozone.wide <- read_csv("..//CE594R_data_science_R//data//ozone.I.O.csv")
 
 ```
 
@@ -60,6 +59,8 @@ ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=`Type of Ai
 
 Sort the House IDs by the size of the mean I/O ratio
 
+and replot
+
 ```{r}
 names(ozone.wide)
 
@@ -81,9 +82,7 @@ ozone.wide <- ozone.wide %>%
 ozone.wide <- ozone.wide %>%
               mutate(House.Number = fct_reorder(House.Number, In_Out_ratio, .fun=mean))
 
-?fct_reorder
-
-ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=`Type of Air Conditioner`)) + 
+ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=House.Number)) + 
   geom_jitter(size=2,alpha=0.9,width=0.2,pch=21,color='black')+
   theme_bw()+
    labs(x='House', y= 'I/O')+
@@ -94,19 +93,6 @@ ggplot(data = ozone.wide,aes(x = House.Number, y = In_Out_ratio,fill=`Type of Ai
   theme(axis.text.y = element_text(size=9),axis.text.x = element_text(angle = 90,vjust =0.5, size=8))
 
 
-
-
-```
-Replot
-
-```{r}
-
-
-     
-
-```
-
-```{r}
 ggsave(".//inclass//ozone.indoor.outdoor.png", width=6.5, height=4, units="in")
 ```
  
@@ -122,8 +108,8 @@ mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided
 Print the table using kable
 
 ```{r}
-#ozone.wide <- ozone.wide %>%
- #             rename(ac.type = `Type of Air Conditioner`)
+ozone.wide <- ozone.wide %>%
+              mutate(ac.type = `Type of Air Conditioner`)
 
 
 
@@ -163,16 +149,21 @@ Good overview here (or a statistics text book)
   <https://canvas.harvard.edu/files/1170856/download?download_frd=1>
 - We assume the our population is approximately normal (although the t-distribution is fairly robust to departures of normality if our n is large)
   - What is our N?
-  
+  - we have 20 and 25 observations. We have a small sample
   
 - How can we evaluate if our observations are approximately normal? 
 
 - We can plot the data-- histogram?
 
+names(ozone.wide)
 
 ```{r}
+hg <- ggplot(data=ozone.wide, aes(x=In_Out_ratio, fill=ac.type))+
+  geom_histogram(bins=10)+
+  geom_density()+
+  facet_wrap(~ac.type,scales='free')
 
-
+hg
 ```
 
 - What other plots? quantile-quantile plot
@@ -205,8 +196,8 @@ for(i in 1:9) {x <- rnorm(n); qqnorm(x); qqline(x)}
 filter just the 'AC' homes
 
 Arrange my data from smallest to largest In_Out
-Add an order sequene
-Calculate the percentile of hte order
+Add an order sequence
+Calculate the percentile of the order
 Calculate the z_score using qnorm(percentile)
 
 plot the z-score on the x-axis, and the In_Out_ration on the y
@@ -214,33 +205,18 @@ plot the z-score on the x-axis, and the In_Out_ration on the y
 
 ```{r}
 ozone.wide.AC <- ozone.wide %>%
-                 filter(`Type of Air Conditioner` == 'Central') %>%
+                 filter(ac.type == 'Central') %>%
                  arrange(In_Out_ratio) %>%
                  mutate(ord = seq(1:n())) %>%
                  mutate(percentile = ord/(n()+1)) %>%
                  mutate(z_score = qnorm(percentile)) ## This calculates the z-score depending on the percentiles, or the inverse of the quantile density function
                  
 ggplot(ozone.wide.AC, aes(x=z_score,y=In_Out_ratio)) +
-    geom_point()    
-
-```
-
-# Use ggplot functions
-
-<https://ggplot2.tidyverse.org/reference/geom_qq.html>
-
-```{r}
-ozone.wide.AC <- ozone.wide %>%
-                 filter(`Type of Air Conditioner` == 'Central') %>%
-                 arrange(In_Out_ratio) %>%
-                 mutate(ord = seq(1:n())) %>%
-                 mutate(percentile = ord/(n()+1)) %>%
-                 mutate(z_score = qnorm(percentile)) ## This calculates the z-score depending on the percentiles, or the inverse of the normal cumulative distribution function 
-ggplot(ozone.wide.AC, aes(x=z_score,y=In_Out_ratio)) +
     geom_point()+
-    labs(title = 'Normal q-q plot')
+    labs(title = 'Normal q-q plot') 
 
 ```
+
 ## Let's use the ggplot functions
 
 <https://ggplot2.tidyverse.org/reference/geom_qq.html>
@@ -249,6 +225,12 @@ assign the plot to be qq
 
 ```{r}
 
+qq <- ggplot(data=ozone.wide, aes(sample=In_Out_ratio, color=ac.type))+
+  geom_qq(aes(sample=In_Out_ratio))+
+  geom_qq_line()+
+  facet_wrap(~ac.type,scales='free')
+
+qq
 ```
 - Do the data appear to be normally distributed?
 - Central visits looks better than Evaporative visits.
@@ -261,6 +243,7 @@ assign the plot to be qq
 <https://ggplot2-book.org/arranging-plots>
 
 ```{r}
+#install.packages('patchwork')
 library(patchwork)
 
 hg + qq + plot_layout(ncol = 1)
