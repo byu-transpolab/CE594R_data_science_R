@@ -1,0 +1,394 @@
+---
+title: "Inclass_10_linear_regression"
+author: "Darrell Sonntag"
+date: "2024-02-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+
+```
+
+Objectives
+- Discuss serial correlation (autocorrelation)
+- Fit linear regression model to bivariate data
+- Extract coefficient estimates, including 95% confidence intervals and p-values
+- Plot your fitted linear regression model 
+- Predict values from your linear regression model
+
+
+What's another issue with independence. 
+Serial correlation (correlation with time)
+
+Let's look at the data from HW4
+
+What is the mean concentration of the indoor PM2.5 concentrations for each season by different homes
+
+Use the minute-by-minute data
+
+```{r}
+
+SidePak.minute.qa  <- read_csv("..//..//CE594R_data_science_R//data//SidePak.minute.qa.csv")
+```
+Calculate the means and 95% confidence intervals
+
+names(SidePak.minute.qa)
+
+```{r}
+SidePak.mean.summary <- SidePak.minute.qa %>%
+    #ungroup() %>%
+    group_by(ac.type, season, Location) %>%
+    summarize(Aerosol_mean = mean(Aerosol_ug_m3),
+            sd = sd(Aerosol_ug_m3),
+            n = sum(!is.na(Aerosol_ug_m3))) %>%
+  mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided 
+  mutate(bound = tcrit*sd/sqrt(n)) %>%
+  mutate(lower.95 = Aerosol_mean-bound) %>%
+  mutate(upper.95 = Aerosol_mean+bound ) 
+
+```
+
+Plot the geom_bar
+```{r}
+ggplot(data=SidePak.mean.summary,
+      aes(x=ac.type, y= Aerosol_mean, fill=Location))+
+      geom_col()+
+      geom_errorbar(aes(ymin=lower.95,ymax=upper.95,width=0.25))+
+      theme_bw()+
+      facet_grid(Location~season,scales='free_y') +
+      labs(y='PM2.5 concentration (ug/m3)') +
+      geom_text(y=3,aes(label=paste("n=",n))) ## also plot our number of observations?
+
+```
+
+Are the error bars correct? Is this what we want?
+
+What's the matter?
+
+
+
+
+
+What do we really want? We want the average of concentration of the average house visit. 
+
+First calculate the mean concentration for each house visit
+
+```{r}
+SidePak.visit.sum <- SidePak.minute.qa %>%
+                      ungroup() %>%
+                      group_by(House.Number,Visit,House.Number.Visit,ac.type,season, Location) %>%
+                      summarize(Aerosol_ug_m3= mean(Aerosol_ug_m3,na.rm=T),
+                                Date = min(Date),Start_time = min(round.date.time))
+
+```
+
+Then calculate the population mean and confidence intervals from home visit means
+
+```{r}
+ggplot(data=SidePak.mean.summary.correct,
+      aes(x=ac.type, y= Aerosol_mean, fill=Location))+
+      geom_col()+
+      geom_errorbar(aes(ymin=lower.95,ymax=upper.95,width=0.25))+
+      theme_bw()+
+      facet_grid(Location~season,scales='free_y') +
+      labs(y='PM2.5 concentration (ug/m3)') +
+      geom_text(y=3,aes(label=paste("n=",n)))
+```
+
+If you calculate error bars using all your high resolution data after taking the class, watch out, because I will come correct you!!
+
+
+
+
+```{r}
+
+## Scatter Plots and Linear Regression
+## Read in ozone data that includes the Utah Division of Air Quality data aligned to the data
+
+ozone.summary <- read_csv("..//..//CE594R_data_science_R//data//ozone.summary.csv")
+```
+Create a new df called ozone.summary.out
+Subset the ozone.summary df to just the Location = Out
+Convert the O3.ppm to O3.ppb
+
+```{r}
+ozone.summary.out <- ozone.summary %>%
+                     # filter
+                     # mutate
+```
+
+names(ozone.summary.out)
+
+Plot a scatter plot of the ozone measurements from our study
+Plot O3.ppb (study measurements) on the x-axis
+Plot Ozone.UDAQ.ppb on the y-axis, which are the ozone measurements from the Utah Division of Air Quality (UDAQ) from the closest air monitor on the x-axis 
+Have the points be different colors based on the Closest UDAQ monitoring station (Lindon or Spanish Fork)
+
+Add a linear regression line using geom_smooth (just one for all the points)
+
+
+```{r}
+ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  # geom_point
+  # geom_smooth
+  labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')
+```
+Add a x=y line using geom_abline
+
+Change the coordinates to be symmetric
+```{r}
+
+
+ 
+```
+Question. What are the gray bands around our linear fit?
+You can turn them off using se=FALSE. Are the grey bands the standard error of the mean?
+
+We will find out....
+
+# Fit a linear model to our data
+Use the function lm
+Assign the model to ozone.lm
+
+
+```{r}
+
+
+```
+ozone.lm "returns an object of class "lm" "which is a list containing the following components" 
+From ?lm
+
+Look at the class
+Look at the names
+
+```{r}
+
+```
+You can access the components of the list using [[]] or $ 
+
+Grab the coefficients. It returns a named vector
+
+Return the slope by using the names of the vector or vector index
+
+```{r}
+
+
+
+
+```
+
+You can also return information using the summary() function
+
+Assign the summary to ozone.lm.summary
+
+```{r}
+
+
+
+```
+For example, you can return the coefficients from the summary object. 
+But, now it returns a named matrix, with more information
+
+
+```{r}
+
+```
+
+Return the slope value from the summary object, using the names and/or the matrix index
+Remember matrices are Row, Col (Rowman Catholic)
+```{r}
+
+```
+
+You can also use the coef function as short-cut to get the coefficients out of the summary object
+
+```{r}
+
+```
+# Calculate the 95% Confidence intervals of the linear model coefficients
+
+From a statistics book, each of the estimates of the parameters, divided by the std.error has a t-distribution with n-p degrees of freedom
+
+Linear Model With R, e-book at byu library
+
+<https://search.ebscohost.com/login.aspx?direct=true&scope=site&db=nlebk&db=nlabk&AN=1910500>
+
+You can calculate the 95% CI from the estimates, std.error, and degrees of freedom
+
+```{r}
+
+
+
+```
+
+You can also use the confint() function, that gives you the same result.
+
+```{r}
+
+
+
+```
+The tidy() function from the broom package (part of the tidyverse)
+helps summarize lm output into a well named data.frame
+
+<https://broom.tidymodels.org/reference/tidy.lm.html>
+
+You can also set conf.int = TRUE and it will calculate 95% confidence intervals
+
+There are lots of model output that tidy can summarize
+<https://broom.tidymodels.org/>
+
+```{r}
+library(broom)
+
+ozone.coeff <- 
+  
+  
+  
+```
+
+The get_regression_table() from the library moderndive, takes tidy one step further, it rounds the values in the coefficient table, and renames the output
+
+<https://moderndive.com/5-regression.html#underthehood>
+
+```{r}
+library(moderndive)
+ozone.coeff <-
+  
+  
+  
+```
+
+How can we plot the linear model we fit (ozone.lm) on our plot?
+
+Using the lm object ozone.lm -- not using geom_smooth
+
+Option 1. We could plot an equation using geom_abline()
+And write the equation on the plot using annotate...
+
+```{r}
+
+ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  # geom_point
+  # geom_abline 
+  #
+  annotate("text", x = 30, y = 30, 
+           label = paste("y = ", 
+                         round(ozone.lm$coefficients[1], 2),
+                         "x + ", round(ozone.lm$coefficients[1], 2),
+                         "\n R2 = ",
+                         round(ozone.lm.summary$r.squared, 3))) +
+  labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
+  theme_bw()+
+  coord_cartesian(xlim=c(18,55),ylim=c(18,55))
+
+```
+
+What about more complicated equation forms? Such as higher order polynomial, or multiple predictors? Such as a generalized additive models with our own smoothing parameters (they can't be set using geom_smooth)
+
+Option 2. We could add a column to our data with the predicted values 
+
+Use mutate to add a new column called ozone.predict
+
+You could write out the function
+(preferred) Use to predict function
+
+?predict()
+
+
+```{r}
+
+predict.ozone <-  ozone.summary.out %>%
+                  #mutate
+                  #arrange
+
+```
+
+Predict can also calculate the confidence intervals for your mean estimate or your predicted estimate
+
+Add the confidence intervals for the mean
+
+Predict also allows you to predict the confidence intervals for a single observation
+
+Details here: 
+
+<https://rpubs.com/aaronsc32/regression-confidence-prediction-intervals>
+<http://www.sthda.com/english/articles/40-regression-analysis/166-predict-in-r-model-predictions-and-confidence-intervals/>
+
+```{r}
+
+
+
+```
+
+
+Let's plot our new predicted values and confidence values using: 
+
+- geom_line
+- geom_ribbon
+
+```{r}
+ggplot(data=predict.ozone,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  geom_point(aes(color=Monitor.closest))+
+  #geom_line
+  #geom_ribbon
+  labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
+  theme_bw()
+```
+What are the grey shading in the first ggplot using geom_smooth?
+
+- The 95% confidence intervals of the mean UDAQ ozone, when the study ozone = x
+
+Of course, there is a tidyverse version of predict called augment in the broom package
+
+It applies the predict function and appends the predicted values to an input dataset. 
+It also can calculate the confidence or prediction intervals. 
+
+<https://broom.tidymodels.org/reference/augment.lm.html>
+
+```{r}
+
+predict.ozone <- #augment
+```
+We can plot that--and assure us that we get the same results. 
+Note the name of the predicted mean values are called .fitted
+And the confidence intervals are .lower and .upper
+
+```{r}
+
+```
+
+To make a plot that "looks good"
+I used a function called stat_poly_eq
+Use stat_poly_eq to add the linear fit equation, formatted nicely
+
+It's from the ggplot2 extension package,called ggmisc
+
+In depth info here: 
+<https://cran.r-project.org/web/packages/ggpmisc/vignettes/model-based-annotations.html>
+
+Info on what the sep = text is all about is here: (it's just adding a comma and a space)
+<https://stackoverflow.com/questions/71664752/syntax-of-sep-as-separator>
+
+```{r}
+#install.packages('ggpmisc')
+library(ggpmisc)
+
+ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  geom_point(aes(color=Monitor.closest))+
+  geom_abline(aes(intercept = 0, slope = 1))+
+  geom_smooth(method = 'lm', formula = y~x) +
+  #stat_poly_line()+
+  stat_poly_eq(aes(label = paste(after_stat(eq.label),
+                                 after_stat(rr.label), sep = "*\", \"*")),size=3)+
+    labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
+  theme_bw()+
+  coord_cartesian(xlim=c(18,55),ylim=c(18,55))+
+  theme(axis.text.y = element_text(size=9),axis.text.x = element_text(size=9),
+        axis.title = element_text(size = 9),plot.title = element_text(size = 9),
+        legend.position = 'bottom', strip.text = element_text(size=9))
+
+```

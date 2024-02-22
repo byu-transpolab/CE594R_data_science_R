@@ -261,11 +261,11 @@ What other assumptions do we have?
 - they are clustered together on the graph
 - 
 
-- Let's say  we kept kept re-sampling I/O ratios from the same homes (perhaps each home 100 times). So our N became very large. What would happen to our confidence intervals? Because our observations are 
+- Let's say  we kept kept re-sampling I/O ratios from the same homes (perhaps each home 100 times). So our N became very large. What would happen to our confidence intervals? 
 - Decrease by a factor of 1/sqrt(n). 
-- then our confidence intervals. However, we still would be limited to the same number of homes.... W
+- However, we still would be limited to the same number of homes.... 
 - Would would have more confidence in the 30 homes we sampled, but would we have a much better estimate of mean I/O ratio for all homes in the population? 
-- No-- because we are still sampling the same 30 homes, we haven't expanded our sample
+- No-- because we are still sampling the same 30 homes, we haven't expanded our sample of different types of homes
 
 
 - Also, could there be any relationship of the observations with Date Sampled?
