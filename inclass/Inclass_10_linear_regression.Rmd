@@ -3,6 +3,8 @@ title: "Inclass_10_linear_regression"
 author: "Darrell Sonntag"
 date: "2024-02-08"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -49,6 +51,7 @@ SidePak.mean.summary <- SidePak.minute.qa %>%
   mutate(lower.95 = Aerosol_mean-bound) %>%
   mutate(upper.95 = Aerosol_mean+bound ) 
 
+
 ```
 
 Plot the geom_bar
@@ -84,8 +87,55 @@ SidePak.visit.sum <- SidePak.minute.qa %>%
                                 Date = min(Date),Start_time = min(round.date.time))
 
 ```
+Evaluate the independence of the home visit means
 
-Then calculate the population mean and confidence intervals from home visit means
+```{r}
+SidePak.visit.sum <- SidePak.visit.sum %>%
+  mutate(measurement = ifelse(season == 'Summer' & 
+                                House.Number %in% c('H03','H08','H14','H16','H19','H26'),
+                              'repeat','single')) %>%
+  mutate(house.number.visit = paste(House.Number,Visit,sep=" ")) 
+
+```
+
+
+Plot the repeat measurements
+```{r}
+ggplot(data = SidePak.visit.sum,  aes(y = house.number.visit, x = Aerosol_ug_m3,fill=measurement))+  
+  geom_col(width=0.7)+
+  facet_grid(season+ac.type ~Location,scales='free_y' ,space='free') +
+  scale_fill_brewer(palette = 'Paired')+
+  theme(axis.text = element_text(size = 12)) +
+  labs(x = "Aerosol ug/m3", title='',y='')+
+  theme_bw()+
+  guides(fill=guide_legend(reverse=TRUE)) +
+theme(legend.position = 'bottom')+
+  theme(axis.text.x = element_text(size=10), axis.text.y = element_text(size=10),
+        axis.title = element_text(size = 12),plot.title = element_text(size = 12),
+        strip.text = element_text(size=10),
+        legend.text = element_text(size = 12))  
+```
+
+It appears we have independent observations with the visit means
+
+Now calculate my sample mean and 95% confidence intervals
+
+```{r}
+SidePak.mean.summary.correct <- SidePak.visit.sum %>%
+    #ungroup() %>%
+    group_by(ac.type, season, Location) %>%
+    summarize(Aerosol_mean = mean(Aerosol_ug_m3),
+            sd = sd(Aerosol_ug_m3),
+            n = sum(!is.na(Aerosol_ug_m3))) %>%
+  mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided 
+  mutate(bound = tcrit*sd/sqrt(n)) %>%
+  mutate(lower.95 = Aerosol_mean-bound) %>%
+  mutate(upper.95 = Aerosol_mean+bound ) 
+
+
+```
+
+
 
 ```{r}
 ggplot(data=SidePak.mean.summary.correct,
