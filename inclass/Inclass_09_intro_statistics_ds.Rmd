@@ -276,6 +276,8 @@ What other assumptions do we have?
 - This could be a real issue. What if there was a strong impact of the date sampled, and it so happened that we measured the Evaporative homes on days with high outdoor ozone, that tended to have higher I/O ratios than the evaporative cooler days?
 
 ```{r}
+library(lubridate)
+
 ozone.wide <- ozone.wide %>%
       mutate(year = year(`Date Sampled`))
 
@@ -300,6 +302,14 @@ How can we remove the dependence within our data set with multiple observations 
 
 ```{r}
 
+names(ozone.wide)
+
+ozone.mean.home <- ozone.wide %>%
+                   group_by(House.Number, ac.type) %>%
+                   summarize(mean_I_O = mean(In_Out_ratio),
+                             visits = n())
+
+
 ```
 
 Now calculate the average of the averages, and a 95% confidence intervals
@@ -307,7 +317,17 @@ Now calculate the average of the averages, and a 95% confidence intervals
 Print the table using kable
 
 ```{r}
+ave.io.type.2 <- ozone.mean.home %>%
+               group_by(ac.type) %>%
+               summarize(ave.io = mean(mean_I_O, na.rm=TRUE),
+                         sd = sd(mean_I_O),
+                         n = sum(!is.na(mean_I_O))) %>%
+                mutate(tcrit = qt(.975,df=(n-1))) %>%
+                mutate(bound = tcrit * sd/sqrt(n)) %>%
+                mutate(lower.bound = ave.io - bound) %>%
+                mutate(upper.bound = ave.io + bound) 
 
+kable(ave.io.type.2,digits=2)
 
 ```
 Plot the means with the confidence intervals
@@ -316,18 +336,32 @@ Plot the means with the confidence intervals
 
 ```{r}
 
+ggplot(data=ave.io.type.2, aes(x=ac.type, y=ave.io, fill=ac.type)) +
+  geom_col()+
+  geom_errorbar(aes(ymin = lower.bound, ymax = upper.bound), width=0.3)
+
+
 ```
 
 Calculate a two-sided t-test
 
 ?t.test
+
+names(ozone.mean.home)
+
 ```{r}
 
+t.test.ozone <- t.test(mean_I_O ~ ac.type, data=ozone.mean.home)
+
+t.test.ozone
 
 ```
 We can extract information from the t.test.ozone object, such as the p-value
 
 ```{r}
+names(t.test.ozone)
+
+t.test.ozone$p.value
 
 ```
 
