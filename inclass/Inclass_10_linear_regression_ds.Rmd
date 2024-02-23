@@ -168,8 +168,8 @@ names(ozone.summary)
 
 ```{r}
 ozone.summary.out <- ozone.summary %>%
-                     # filter
-                    # mutate
+                     filter(Location == 'Out') %>%
+                     mutate(O3.ppb = O3.ppm*1000)
 ```
 
 names(ozone.summary.out)
@@ -185,14 +185,19 @@ Add a linear regression line using geom_smooth (just one for all the points)
 ```{r}
 ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
   geom_point()+
-  # geom smooth
+  geom_smooth(method=lm, formula = y~x)+
   labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')
 ```
 Add a x=y line using geom_abline
 
 Change the coordinates to be symmetric
 ```{r}
-
+ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  geom_point()+
+  geom_smooth(method=lm, formula = y~x, se=F)+
+  labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
+  geom_abline(aes(intercept=0, slope=1))+
+  coord_cartesian(xlim = c(15,60), ylim=c(15,60))
 
  
 ```
@@ -208,6 +213,9 @@ Assign the model to ozone.lm
 
 ```{r}
 
+ozone.lm <- lm(formula = Ozone.UDAQ.ppb ~ O3.ppb, data=ozone.summary.out )
+
+ozone.lm
 
 
 ```
@@ -219,7 +227,9 @@ Look at the names
 
 ```{r}
 
+class(ozone.lm)
 
+names(ozone.lm)
 
 ```
 You can access the components of the list using [[]] or $ 
@@ -230,7 +240,11 @@ Return the slope by using the names of the vector or vector index
 
 ```{r}
 
+ozone.lm$coefficients
 
+ozone.lm$coefficients['O3.ppb']
+
+ozone.lm$coefficients[2]
 
 ```
 
@@ -240,7 +254,11 @@ Assign the summary to ozone.lm.summary
 
 ```{r}
 
+ozone.lm.summary <- summary(ozone.lm)
 
+ozone.lm.summary
+
+names(ozone.lm.summary)
 
 ```
 For example, you can return the coefficients from the summary object. 
@@ -248,7 +266,7 @@ But, now it returns a named matrix, with more information
 
 
 ```{r}
-
+ozone.lm.summary$coefficients
 
 
 ```
@@ -257,14 +275,16 @@ Return the slope value from the summary object, using the names and/or the matri
 Remember matrices are Row, Col (Rowman Catholic)
 ```{r}
 
+ozone.lm.summary$coefficients[2,1]
 
+ozone.lm.summary$coefficients['O3.ppb','Estimate']
 
 ```
 
 You can also use the coef function as short-cut to get the coefficients out of the summary object
 
 ```{r}
-
+coef(ozone.lm.summary)
 
 
 ```
