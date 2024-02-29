@@ -286,7 +286,6 @@ You can also use the coef function as short-cut to get the coefficients out of t
 ```{r}
 coef(ozone.lm.summary)
 
-
 ```
 # Calculate the 95% Confidence intervals of the linear model coefficients
 
@@ -300,15 +299,18 @@ You can calculate the 95% CI from the estimates, std.error, and degrees of freed
 
 ```{r}
 
+ozone.lm$df
 
+ozone.coeff <- data.frame(ozone.lm.summary$coefficients) %>%
+               mutate(lower_ci = Estimate - Std..Error*qt(0.975,ozone.lm$df)) %>%
+               mutate(upper_ci = Estimate + Std..Error*qt(0.975,ozone.lm$df))
 
 ```
 
 You can also use the confint() function, that gives you the same result.
 
 ```{r}
-
-
+ozone.coeff.2 <- confint(ozone.lm)
 
 ```
 The tidy() function from the broom package (part of the tidyverse)
@@ -324,9 +326,8 @@ There are lots of model output that tidy can summarize
 ```{r}
 library(broom)
 
-ozone.coeff <- 
-  
-  
+ozone.coeff.3 <- tidy(ozone.lm, conf.int = TRUE)
+
   
 ```
 
@@ -336,9 +337,7 @@ The get_regression_table() from the library moderndive, takes tidy one step furt
 
 ```{r}
 library(moderndive)
-ozone.coeff <-
-  
-  
+ozone.coeff <- get_regression_table(ozone.lm)
   
 ```
 
@@ -352,12 +351,11 @@ And write the equation on the plot using annotate...
 ```{r}
 
 ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
-  # geom_point
-  # geom_abline 
-  #
+  geom_point() + 
+  geom_abline(aes(intercept = ozone.coeff$estimate[1], slope=ozone.coeff$estimate[2]))+
   annotate("text", x = 30, y = 30, 
            label = paste("y = ", 
-                         round(ozone.lm$coefficients[1], 2),
+                         round(ozone.lm$coefficients[2], 2),
                          "x + ", round(ozone.lm$coefficients[1], 2),
                          "\n R2 = ",
                          round(ozone.lm.summary$r.squared, 3))) +
@@ -374,7 +372,7 @@ Option 2. We could add a column to our data with the predicted values
 Use mutate to add a new column called ozone.predict
 
 You could write out the function
-(preferred) Use to predict function
+(preferred) Use the predict function
 
 ?predict()
 
@@ -382,8 +380,8 @@ You could write out the function
 ```{r}
 
 predict.ozone <-  ozone.summary.out %>%
-                  #mutate
-                  #arrange
+                  mutate(ozone.predict = predict(ozone.lm)) %>%
+                  arrange(ozone.predict)
 
 ```
 
@@ -400,7 +398,13 @@ Details here:
 
 ```{r}
 
+predict(ozone.lm, interval='confidence')
 
+predict.ozone <-  ozone.summary.out %>%
+                  mutate(ozone.predict = predict(ozone.lm)) %>%
+                  mutate(lower_ci = predict(ozone.lm, interval='confidence')[,"lwr"]) %>%
+                  mutate(upper_ci = predict(ozone.lm, interval='confidence')[,"upr"]) %>%
+                  arrange(ozone.predict)
 
 ```
 
@@ -411,10 +415,11 @@ Let's plot our new predicted values and confidence values using:
 - geom_ribbon
 
 ```{r}
+
 ggplot(data=predict.ozone,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
   geom_point(aes(color=Monitor.closest))+
-  #geom_line
-  #geom_ribbon
+  geom_line(aes(y=ozone.predict))+
+  geom_ribbon(aes(ymin = lower_ci,ymax = upper_ci),col=NA,alpha=0.3) +
   labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
   theme_bw()
 ```
@@ -431,14 +436,19 @@ It also can calculate the confidence or prediction intervals.
 
 ```{r}
 
-predict.ozone <- #augment
+predict.ozone <- augment(ozone.lm,data=ozone.summary.out,interval = "confidence")
 ```
 We can plot that--and assure us that we get the same results. 
 Note the name of the predicted mean values are called .fitted
 And the confidence intervals are .lower and .upper
 
 ```{r}
-
+ggplot(data=predict.ozone,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
+  geom_point(aes(color=Monitor.closest))+
+  geom_line(aes(y=.fitted))+
+  geom_ribbon(aes(ymin = .lower,ymax = .upper),col=NA,alpha=0.3) +
+  labs(x='Outdoor Ozone at each house visit, ppb', y='Ozone at closest UDAQ monitor, ppb')+
+  theme_bw()
 ```
 
 To make a plot that "looks good"
@@ -450,11 +460,11 @@ It's from the ggplot2 extension package,called ggmisc
 In depth info here: 
 <https://cran.r-project.org/web/packages/ggpmisc/vignettes/model-based-annotations.html>
 
-Info on what the sep = text is all about is here: (it's just adding a comma and a space)
+Info on what the sep = "*\", \"*" is all about is here: (it's adding a comma and a space)
 <https://stackoverflow.com/questions/71664752/syntax-of-sep-as-separator>
 
 ```{r}
-#install.packages('ggpmisc')
+install.packages('ggpmisc')
 library(ggpmisc)
 
 ggplot(data=ozone.summary.out,aes(y=Ozone.UDAQ.ppb, x=O3.ppb))+
