@@ -1,0 +1,462 @@
+---
+title: "Inclass_12_multiple_linear_regression"
+author: "Darrell Sonntag"
+date: "2024-02-19"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(moderndive)
+library(patchwork)
+library(broom)
+library(tinytable)
+```
+
+
+Multiple linear regression models are useful for multiple purposes:
+
+1. Explanation 
+  - Finding statistically significant relationships
+  - We need to make sure that our statistical tests are valid
+  - Look at the assumptions of our linear model
+  
+  
+2. Prediction
+  - Focus on how well we can predict outcomes
+  - Don't need to interpret the model parameters
+  
+3. Both
+  - Often we want a mix of both, a model we can understand, and that does well at prediction. 
+  - But often, you will be more interested in one or the other
+
+Our focus for today is on explanation. We will look at prediction later in the course. 
+
+Good discussion of this here: 
+
+<https://moderndive.com/5-regression.html>
+
+
+Let's look at a simple example of using both continuous and categorical variables in a multiple linear regression model. 
+
+```{r}
+
+str(diamonds)
+
+levels(diamonds$color)
+
+data(diamonds)
+
+diamonds <- diamonds %>%
+            mutate(color = factor(color,ordered=F)) ## change color to an unordered factor
+
+## fit a linear model to predict the price as a simple linear function of carat, depth, and color 
+
+diamonds.lm <- lm(formula = price ~ carat + depth + color, data = diamonds)
+
+```
+
+
+```{r}
+names(diamonds.lm)
+
+summary(diamonds.lm)
+
+unique(diamonds$color)
+
+```
+By default R chose colorD to be the reference color. 
+
+Question: How could you change the reference to be Color J? (the least expensive?)
+
+Answer: Reorder the levels of color
+
+```{r}
+list_diamonds <- sort(unique(diamonds$color),decreasing=T)
+
+list_diamonds
+
+diamonds <- diamonds %>%
+           mutate(color = factor(color,levels =list_diamonds, decreasing=T) ,ordered=F) #%>%
+           # mutate(color = fct_rev(color))
+
+
+diamonds.lm <- lm(formula = price ~ carat + depth + color, data = diamonds)
+
+summary(diamonds.lm)
+
+```
+
+
+The default lm uses dummy coding, where R "Compares each level to the reference level, intercept being the cell mean of the reference group." 
+
+There are other ways. For example, deviation coding "Compares each level to the grand mean
+
+More details here:  
+
+<https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/>
+
+For example below, we use deviation coding. The intercept is now the 'grand mean'
+
+```{r}
+contrasts(diamonds$color) = contr.sum(7)
+
+diamonds.lm <- lm(formula = price ~ carat + depth + color,
+                  data = diamonds)
+
+summary(diamonds.lm)
+
+```
+
+There is a good description of linear models, and modeling with categorical variables in Chapter 14 of this book  (and contrast coding) 
+
+Linear Model With R, e-book at byu library
+
+<https://search.ebscohost.com/login.aspx?direct=true&scope=site&db=nlebk&db=nlabk&AN=1910500>
+
+
+Hold on...
+
+Question:  What should we have done before fitting a model above to the diamond data?
+
+Answer: 
+
+
+
+## Conduct inference on the SidePak aggregated data
+
+Question: Is the slope significantly different between homes with AC or EC homes?
+
+Load in the data that you analyzed in HW4. This is the data with the average indoor and outdoor PM2.5 concentrations by home visit
+
+```{r}
+SidePak.visit.sum <- read_csv("../../CE594R_data_science_R/data/SidePak.visit.summary.csv")
+
+
+```
+
+We had a smoke event occur during our study. We want to see if that impacted our results
+
+Use interval from the Lubridate tidyverse package
+
+```{r}
+smoke.event <- interval(ymd('2022-09-08'),ymd('2022-09-12'))
+
+SidePak.visit.sum <- SidePak.visit.sum %>%
+                      mutate(day.type = ifelse(Date %within% smoke.event,'Wildfire Smoke','Normal')) 
+
+```
+
+
+Create a plot of the data with Outdoor concentration on the x-axis, and indoor concentration on the y-axis
+Have different facets for the two types of ac.type, and the two seasons
+
+Add a geom_smooth
+
+```{r}
+names(SidePak.visit.sum)
+
+
+ggplot(data=SidePak.visit.sum,aes(x=Out_mean, y=In_mean))+
+  geom_point(aes(color = day.type)) +
+  geom_smooth(method = 'lm')+
+  facet_grid(season ~ ac.type) +
+  labs(x = expression(paste("Outdoor SidePak PM"[2.5]," ug/m"^3)),
+       y = expression(paste("Indoor SidePak PM"[2.5]," ug/m"^3)))+
+  theme_bw()+
+  theme(legend.position = 'bottom')+
+  theme(axis.text.y = element_text(size=9),axis.text.x = element_text(size=9),
+        axis.title = element_text(size = 9),plot.title = element_text(size = 9),
+        legend.title = element_blank(),legend.text = element_text(size = 9),
+        strip.text = element_text(size=9))
+```
+Question: Is the slope significantly different between AC and EC homes in the summer?
+What about the winter?
+
+How would you address the question?
+
+1. Option 1. Fit a linear model for each ac.type. See if the confidence intervals fo the slope term overlap. 
+2. Option 2. Fit a multiple linear regression model. Have an interaction term for the slope x ac.type. Is it significant?
+
+Let's do option 2. 
+
+First filter down to each season
+
+Then fit a linear model to the data from each season
+
+- Include the slope and an intercept term
+- See if the p-value is significant for the intercept term
+
+
+```{r}
+
+## filter SidePak.visit.sum to just select the Summer visits, and the Winter visits
+
+Sidepak.summer <- SidePak.visit.sum %>%
+                  filter(season == 'Summer') 
+
+## fit a lm model to the summer data, predicting the In concentration from the Outdoor concentration
+
+summer.lm <- lm(formula = In_mean ~ Out_mean + ac.type + Out_mean:ac.type, data=Sidepak.summer)
+
+## colon includes interaction
+## * includes interaction and individual terms
+?formula
+
+## Save the coefficients in a data.frame using get_regression_table
+
+summer.coef <- summer.lm %>%
+               get_regression_table() %>%
+               mutate(season = 'Summer')
+
+
+## Do the same for winter
+
+Sidepak.winter <- SidePak.visit.sum %>%
+                  filter(season == 'Winter') 
+
+winter.lm <- lm(formula = In_mean ~ Out_mean + ac.type + Out_mean:ac.type, data=Sidepak.winter)
+
+winter.coef <- winter.lm %>%
+               get_regression_table() %>%
+               mutate(season = 'Winter')
+
+## bind_rows together  
+
+
+
+
+## look at the results
+
+```
+
+## Look at the results
+
+Question: Is the slope significantly different between the two ac.types in the summer?
+Answer: Yes
+
+Quesiton: Is the slope significantly different in the two ac.types in the winter?
+Answer: No
+
+### Model diagnostics
+
+### Assumptions on linear model
+
+Detailed discussion of diagnostics here: 
+
+Linear Model With R, e-book at byu library
+
+<https://search.ebscohost.com/login.aspx?direct=true&scope=site&db=nlebk&db=nlabk&AN=1910500>
+
+  See Chapter 6
+
+Succinct description of diagnostics here: 
+Read Chapter 11, especially 11.2.1, and 11.4
+<https://smogdr.github.io/edar_coursebook/model.html#model>
+
+Let's check if our residuals are
+
+- Independent (no correlation with other variables, no autocorrelation)
+- Normally distributed around 0, with constant variance
+
+Evaluate residuals vs. predictions, are they independent vs. predictions?
+Evaluate if the residuals are approximately normally distributed?
+
+We can access the residuals from our summer.lm object
+
+```{r}
+names(summer.lm)
+
+```
+We can access the fitted.values and the residuals from the lm.object
+
+Then plot the
+
+```{r}
+summer.lm.predictions <- bind_cols(summer.lm$fitted.values, 
+                                   summer.lm$residuals)
+
+names(summer.lm.predictions) <- c('fitted.values','residuals')
+
+ggplot(data=summer.lm.predictions, aes(x=fitted.values,y=residuals)) +
+  geom_point(alpha=0.5)+
+  geom_hline(yintercept = 0)+
+  theme_bw()
+
+```
+
+Note: We could use the augment function from broom that we learned in InClass10, 
+We will use that next time...
+
+
+?bind_cols
+
+
+Let's also look at the histogram and q-q plot...
+
+```{r}
+
+#hg <- ggplot(data =,aes()) + 
+ # geom_histogram(bins=6)+
+#  theme_bw()+
+#  labs(x='residuals', y= 'count')  +
+#  theme(legend.position= 'none')
+
+hg
+
+#qq <- ggplot(, ) +
+#    geom_qq()+
+#    geom_qq_line()+
+#    labs(title = 'Normal q-q plot',y='residuals', x='z-score') + 
+#    theme(legend.position = 'none')
+
+hg + qq + plot_layout(ncol = 2)
+
+```
+They are ok.., but not perfect. It appears that the points from the wildfire are influencing the results. 
+
+
+
+How sensitive our our results when they are removed?
+
+Filter to just the summer no fire observations
+
+```{r}
+SidePak.summer.no.fire <- 
+  
+
+```
+
+Fit a linear model to those observations
+
+```{r}
+
+class(SidePak.summer.no.fire)
+
+summer.no.fire.lm <-
+
+## use get_regression_coeff
+  
+ozone.coeff.summer.no.fire <- 
+
+```
+put the results into a table either using kable() or tt()
+```{r}
+library(tinytable)
+tt(ozone.coeff.summer.no.fire)
+```
+Results: 
+When we remove the values, the slope is no longer significantly different between AC and EC homes.
+
+Let's look at the residuals
+
+Augment the results using the augment function from 'broom' 
+
+(Rather than extracting the "fitted.values" and "residuals" from the lm object)
+
+```{r}
+library(broom)
+
+#predict.summer.no.fire <-  %>%
+#                          augment(data = , interval = "confidence")
+
+names(predict.summer.no.fire)
+
+
+```
+
+## look at residuals vs. predictions
+
+```{r}
+#ggplot(data=) +
+#  geom_point(alpha=0.5)+
+#  geom_hline()+
+#  theme_bw()
+```
+
+Let's also look at the histogram and q-q plot of the residuals without the fire
+
+```{r}
+
+hg.no.fire <- ggplot(data = predict.summer.no.fire,aes(x = .resid)) + 
+  geom_histogram(bins=6)+
+  theme_bw()+
+  labs(x='residuals', y= 'count')  +
+  theme(legend.position= 'none')
+
+
+qq.no.fire <- ggplot(predict.summer.no.fire, aes(sample=.resid)) +
+    geom_qq()+
+    geom_qq_line()+
+    labs(title = 'Normal q-q plot',y='residuals', x='z-score') + 
+    theme(legend.position = 'none')
+
+hg.no.fire + qq.no.fire + plot_layout(ncol = 2)
+
+```
+Residuals are similar. They seem reasonable, but there still is one influential outlier
+
+
+## Conclusions-- are results are dependent on the wildfire days smoke
+
+
+What happens if we have have confounding variables?
+
+In this case, our data are strongly influenced by wildfire. 
+If we had enough data with wildfire events, I would split up our data between wildfire and non-wildfire days. Or test if the slope is significantly different between the two. 
+
+for now, I will present results with and without the wildfires, and be clear that are results are strongly dependent on a few observations. 
+
+
+We need to be careful with confounding variables. 
+
+Multiple linear regression can be a useful tool to account for a confounding variables (as we will see in our homework). 
+
+Good overview of Simpson's Paradox, importance of taking into account confounding variables. 
+
+<https://moderndive.com/6-multiple-regression.html#model3>
+<https://moderndive.com/6-multiple-regression.html#simpsonsparadox>
+
+
+Extra materials:
+
+Here's a way you can pipe data to lm for a single dataset
+<https://stackoverflow.com/questions/72581227/how-to-use-dplyr-pipe-to-perform-linear-model>
+
+```{r}
+summer.fit.no.fire <- SidePak.visit.sum %>%
+              lm(In_mean ~ Out_mean + Out_mean*ac.type, data=.) %>% ## use data = . to pipe in the data
+              get_regression_table() %>%
+              mutate(season = 'Summer')
+```
+
+
+
+Here's another way to fit multiple regression models using group_by, split, and map
+
+```{r}
+SidePak.visit.sum %>%
+  group_by(season) %>%
+  group_split() %>%
+  map(\(df) lm(In_mean ~ Out_mean + Out_mean*ac.type, data=df)) %>% 
+  ## \(df) is shortcut for an unnamed function(df) called an anonymous function
+  map(get_regression_table) %>%
+  list_rbind()
+```
+
+
+Anonymous functions are new to me. There's some information here: 
+
+"Anonymous functions are functions without names. They’re useful when you want to create a new function, but don’t plan on calling that function again"
+
+<https://dcl-prog.stanford.edu/function-anonymous.html>
+
+"A good rule of thumb is that an anonymous function should fit on one line and shouldn’t need to use {}. Review your code. Where could you have used an anonymous function instead of a named function? Where should you have used a named function instead of an anonymous function?"
+
+<http://adv-r.had.co.nz/Functional-programming.html#anonymous-functions>
+
+
+
