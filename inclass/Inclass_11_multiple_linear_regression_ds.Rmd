@@ -292,6 +292,11 @@ Note: We could use the augment function from broom that we learned in InClass10,
 We will use that next time...
 
 
+Next time-- show class how coefficients workj
+
+Show them that we get the same answer whether we combine the data by ac.type, or fit separate linear models for each one...
+
+
 ?bind_cols
 
 
