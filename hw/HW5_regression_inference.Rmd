@@ -1,0 +1,610 @@
+---
+title: "HW5_regression_inference"
+author: "Darrell Sonntag"
+date: "2024-02-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(patchwork)
+library(moderndive)
+```
+
+Fit a multiple linear regression model to conduct statistical inference.
+
+Do vehicles that pass emissions have lower emissions than those that don't?
+
+First, we are going to control for multiple factors that impact emissions
+
+We will visually evaluate the impact that potential factors such as model year, location, fuel type and vehicle emission tests have on emissions
+
+Then, we'll fit a multiple linear regression to see if the vehicle emission test status has an impact on emissions.
+
+First read in the data
+
+summer.2022.IM.csv 
+summer.2022.nonIM
+
+In the data folder in the class public repository,
+
+```{r}
+
+summer.2022.IM <- read_csv("../../CE594R_data_science_R/data/summer.2022.IM.csv") 
+
+summer.2022.nonIM <- read_csv("../../CE594R_data_science_R/data/summer.2022.nonIM.csv") 
+
+```
+
+This file includes the 4 dates of vehicle measurements from summer 2022. Amber has updated the files to include data on whether the vehicle is current with it's 
+Combine the two data files using bind_rows, assign it to summer.2022
+
+```{r}
+summer.2022 <- ##
+```
+
+Reorder the compliance variable, Compliant, Not Compliant, Exempt, and NonIM
+
+Calculate the a Complicance variable as a factor with levels Compliant, Not Compliant, Exempt, NonIM (but set ordered = False) (This is so the regression we will calculate later on, doesn't think there is an order to the factors)
+
+```{r}
+
+
+```
+
+Filter to the gasoline vehicles (FuelGroup is Gasoline)
+
+Filter out any obs where the Year is missing
+
+Add a variable called year_cuts Use the cut function to cut the Year variable, into intervals between the following break points: 1963, 1982, 1994, 2001, 2016, and 2023.
+
+?cut
+
+```{r}
+summer.2022.gas <- summer.2022 %>%
+  ## 
+  ## 
+  ## mutate(year_cuts = )
+```
+
+Calculate mean, count, sd, and 95% CI of the mean by pollutant, year_cuts, and compliance
+
+```{r}
+summer.2022.compliance.summary <- summer.2022.gas %>%
+  ## group_by(pollutant, Compliance, year_cuts) %>%
+  ## summarize
+
+```
+
+Look at the summary file 
+
+  - How many exempt vehicles are there with CO measurements? 
+  - Answer 
+
+
+Graph the means with year_cuts on the x-axis, and the ER means on the y-axis
+
+  -   Using geom_col or geom_point with dodge to plot all the compliance levels
+  -   Different colors for compliance
+  -   Year cuts on the x-axis
+  -   Dodge the compliance
+  -   Separate panels for each pollutant
+
+```{r}
+names(summer.2022.compliance.summary)
+
+
+
+```
+
+Next, re-create the following graph using ggplot
+
+![](../../CE594R_data_science_R/figs/ER_compliance.png)
+
+Details
+
+  -   Plot just for 1994 and later model year groups
+  -   Just plot CO, HC, NH3, and NO,
+  -   Use geom_errorbar to add 95% confidence intervals to the plot
+
+Also just plot the "Compliant", "Not Compliant","NonIM")
+
+```{r}
+
+
+```
+
+Do you observe any systematic or significant differences in the mean Not Compliant or NonIM emission rates compared to the Compliant emission rates?
+
+Answer
+
+Next, evaluate if location has a significant impact in the average emission rates by model year?
+
+Create a summary of the means by pollutant, location, and year cuts
+
+Just for Year > 1994
+Just for pollutants 'CO','HC','NH3','NO'
+
+
+```{r}
+
+summer.2022.loc.summary <-
+
+```
+
+Graph the means by location (just for the newer model years) from the data.frame summer.2022.loc.summary
+
+Does there tend to be a systematic difference in the mean emission rates by location?
+
+```{r}
+
+```
+
+Let's fit a model to the data that controls for the other factors, location, model year
+
+Let's just focus on NH3 for now.
+
+Create a new summer.2022.gas.NH3 data.frame from the summer.2022.gas
+
+-   Filter to just NH3
+-   Remove any rows with missing NH3 emission rate (column ER)
+-   Just filter on the Compliant, non compliant and nonIM vehicles (exclude the exempt, since there are so few..)
+-   Filter to Years 1994 and newer (the newer vehicles which are capable of electronic emission tests)
+
+```{r}
+
+summer.2022.gas.NH3 <- 
+
+```
+
+Fit a linear model
+
+Use the model form: ER = intercept + location + Compliance + year + year\^2
+
+```{r}
+
+
+```
+
+Look at summary
+
+```{r}
+
+
+
+```
+
+How good is our model at explaining the variability of individual vehicles?
+What is the R2?, Is it good?
+
+
+Is the Compliance coefficient significant?
+
+
+
+Let's look at our model coefficients. Put them into a data.frame
+
+
+```{r}
+lm.nh3.coef <- 
+
+
+```
+
+Get the predictions of your model to the data
+
+```{r}
+
+
+```
+
+Plot your model estimates
+
+Plot the NH3 emission rate on the y-axis 
+
+Plot the model estimated (fitted) emission rates on the x-axis
+
+```{r}
+
+```
+
+Now plot the predicted values (x-axis) vs. the residuals (y-axis) How do my residuals look like they are independent, and normally distributed with a constant variance across the predictors?
+
+```{r}
+
+
+```
+
+No-- they don't look look normally distributed, and the variation appears to be changing
+
+Also, look at the histogram and q-q plot of the residuals
+
+```{r}
+
+
+```
+
+How do the residuals look? Do you think I can assume that the residuals are approximately normal?
+
+No, they are highly skewed
+
+Should I trust my statistical tests from the multiple linear regression model? 
+
+Probably not, unless the p-values are very small
+
+Our linear model seems to be the wrong model fit to to our data. 
+For example, It seems the the impact of location would be better modeled as a multiplicative factor. 
+
+Let's try a log transformation of our y data.
+
+Now, let's look if we can have find a log-linear relationship
+
+There is a good discussion of log-normal transformation here: 
+
+<https://smogdr.github.io/edar_coursebook/transform.html#transformation>
+
+And an example of using transformations in linear regression here: 
+<https://smogdr.github.io/edar_coursebook/model.html#example-ols-linear-regression>
+
+Let's calculate the ln(ER)
+
+Note: you can't take the LN of any negative values.
+
+Create a new data.frame called summer.2022.gas.NH3.pos
+
+-   First, Remove all the negative NH3 emission rates (ER)
+-   Calculate the ln(ER)
+
+```{r}
+
+summer.2022.gas.NH3.pos <-
+  
+```
+
+How many obs do we have now? How many did we lose?
+
+```{r}
+
+```
+
+
+
+Fit a linear model to predict the ln(ER) with additive terms for location, model year, and compliance, and interaction terms for each
+
+```{r}
+
+lm.ln.NH3 = lm(formula = ln.ER ~  location + Compliance + Year,
+            data = summer.2022.gas.NH3.pos )
+
+summary(lm.ln.NH3)
+
+```
+
+The factor in our model are additive in log-space, buut multiplicative in real-space.
+
+
+$$
+ln(ER) = a*location+b*year+c*compliance
+$$
+
+$$
+\exp(\ln(ER)) = \exp(a*location+b*year+c*compliance)
+$$
+$$
+ER = \exp(a*location) * \exp(b*year) * \exp(c*compliance)
+$$
+In real-space, the impact of location, year, and compliance are multiplicative. 
+
+Looking at the graph of the mean emission rates by model year and location
+A multiplicative effect of location on the emission rates looks like what we want. (For example, the Univ. Ave on NH3 looks ~ 2 times higher than the Timp HWY East for NH3 for each of the model year groups)
+
+![](../../CE594R_data_science_R/figs/ER_location.png)
+
+Graph the mean emission rates by location, compliance and model year 
+
+First calculate a summary of the means, then graph. 
+
+
+```{r}
+
+names(summer.2022.gas.NH3.pos)
+
+ln.NH3.year.loc.comp.summary <-
+
+```
+
+Graph the mean ln.ER from ln.NH3.year.loc.comp.summary.
+
+x = year_cuts, y = mean ln.ER, color = compliance, separate panes for location
+
+```{r}
+
+  ggplot(data = ln.NH3.year.loc.comp.summary , aes(x = year_cuts, y = mean, color= Compliance)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5), aes(ymin = lower.95, ymax = upper.95), width = 0.2) +
+  facet_wrap(.~ location, scales = "free_y") +
+  labs(title = "Potential Interaction terms",
+       x = "MY group",
+       y = "ln(ER)") +
+  theme(axis.text.x = element_text(size=8, angle=90,hjust = 1, vjust =0.2))
+
+```
+Looking at the graph, does it look like there are potential interaction terms between compliance, model year, and location?
+
+- The slope with year, looks to be the same across model years
+
+- The slope looks significantly different across compliance types. The Not Compliant slope with year looks like it is lower than the others
+
+- I made another plot to look if there is a compliance X location effect. It looks like it is difficult to say...
+
+```{r}
+
+  ggplot(data = ln.NH3.year.loc.comp.summary , aes(x =location, y = mean, color= Compliance)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(position = position_dodge(width = 0.5), aes(ymin = lower.95, ymax = upper.95), width = 0.2) +
+  facet_wrap(.~ year_cuts, scales = "free_y") +
+  labs(title = "Potential Interaction terms",
+       x = "MY group",
+       y = "ln(ER)") +
+  theme(axis.text.x = element_text(size=8, angle=90,hjust = 1, vjust =0.2))
+
+```
+
+Add 3 different interaction terms between Compliance, Year, and Location, are they significant?
+
+Note: Section 14.2 describes how to fit an interaction term:
+
+You can use : or *
+
+Linear Model With R, e-book at byu library
+
+<https://search.ebscohost.com/login.aspx?direct=true&scope=site&db=nlebk&db=nlabk&AN=1910500>
+
+```{r}
+
+lm.ln.NH3 = ###
+```
+
+Are all the interactions significant?
+
+Based on your graphs you made previously, do the results make sense?
+
+Answer
+
+Remove any interaction terms that are not significant (use p-value of 0.05). And refit your lm 
+
+
+
+```{r}
+
+## lm.ln.NH3 = 
+
+```
+
+Plot the residuals from this model
+
+First put them into a data.frame
+
+
+```{r}
+
+predict.lm.ln.NH3 <- 
+
+```
+
+Then plot the fitted (x-axis) and the residuals (y-axis)
+
+
+```{r}
+
+ggplot(data = predict.lm.ln.NH3,aes(y = .resid,x=.fitted)) +
+    geom_point(alpha=0.2) +
+    geom_abline(intercept=0, slope=0)+
+    theme_bw()
+```
+
+How do my residuals vs. predicted values looks?
+
+
+
+Let's also look at the histogram and q-q plot of the residuals
+
+```{r}
+
+
+
+```
+
+
+
+
+Store the coefficients in a data.frame table and then print them
+
+
+```{r}
+lm.ln.NH3.coef <- lm.ln.NH3%>%
+               get_regression_table()
+
+```
+
+```{r}
+library(tinytable)
+
+tt(lm.ln.NH3.coef)
+```
+Look at the model coefficients, is the effect of compliance significant?
+
+Answer
+
+Question: What do the significant interaction terms mean?
+
+Answer
+
+Compliance: Not Compliant 
+
+The ln(ER) intercept term is significantly lower for the Not Compliant emissions
+Non-IM doesn't appear to be significantly different intercept than Compliant.
+
+Compliance: Not Compliant:Year
+
+The ln(ER) slope for the Not Compliant group is significantly different than the Compliant group.l 
+For the Not Compliant Group the observations the slope is close to zero. 
+
+
+To help us understand our model coefficients better, let's graph the model fit 
+
+Plot the model fit, like the picture below
+
+![](../../CE594R_data_science_R/figs/Year_lnER_predict.png)
+
+Plot different panels for each location
+
+  - Plot Year on the x-axis
+  - Plot the observed data on the y-axis using geom_point
+  - Plot the predicted emission rate on the y-axis using geom_line
+
+```{r}
+
+ggplot(data = predict.lm.ln.NH3,aes(x = Year)) +
+    geom_point(aes(y=ln.ER))+
+    geom_line(aes(y=.fitted, color = Compliance), size = 1)+
+    facet_grid(location ~ Compliance)+
+    theme_bw()
+
+
+```
+
+Next plot them without the observations, like the plot below
+
+![](../../CE594R_data_science_R/figs/predict_lnER_comp.png)
+
+
+- Create the following plot of predictions and the standard error of the mean predictions
+-Use geom_line for the predictions Use geom_ribbon for the standard error of the mean predictions
+Only plot the predictions, so you can see differences.
+- Separate panels for the locations ()
+
+See InClass10 for reminders of plotting confidence levels
+
+
+```{r}
+
+
+```
+
+Are the mean predictions significantly different by model year?
+
+Answer:
+
+
+Next, Plot the model predictions in real-space, and compare to the real observations
+
+Take the exponent of the predictions Plot the predicted values by Compliance Plot separate facets for Compliance level and Location
+
+Re-create the following graph:
+
+![](../../CE594R_data_science_R/figs/predict_lnER_comp_real.png)
+
+```{r}
+
+
+```
+
+Then compare just the mean model predictions and confidence intervals (remove the obs)
+
+![](../../CE594R_data_science_R/figs/predict_lnER_real_conf.png)
+
+```{r}
+
+```
+
+In the end, we fit a log-linear model that seemed to fit the data quite well. It also gave us some results that we were able to interpret. 
+
+
+Before we pad ourselves on the back. What are some issues with our model fitting steps?
+
+Answer
+
+To address how that could have impacted our results
+
+-   Let's fit a non-linear smoothing function to the real (untransformed) data
+
+-   Let's smooth by location and Compliance type
+
+-   Let's plot those with the 95% confidence intervals
+
+-   let's use Loess (localized regression smoothing, the default smoother in geom_smooth
+
+-   You can adjust the 'span' to get a "good smooth"
+
+![](../../CE594R_data_science_R/figs/NH3_smooth.png)
+
+```{r}
+
+
+
+```
+
+How do the model estimates from our log-linear model compare to our non-linear model?
+
+Do the magnitude of our predictions change?
+
+Answer
+
+
+Why is that? 
+
+Let's think about the mean of exponent values
+
+The exponent of the mean of the ln(x) is called the geometric mean-- and is not equal to the sample mean.
+
+In other words:
+
+exp(mean(ln(x))) != mean(x)
+
+The mean of x will be more influenced by outliers. In our case, ln(x) reduces the distance to the positive outliers, the geometric mean is closer to the cloud of data at smaller values.
+
+Do the relative order of the model estimates change regarding the compliance variables change?
+
+Answer
+
+Lessons:
+
+List some pros and cons with the separate models?
+
+Linear models with untransformed variables
+
+Pros
+
+Answer
+
+Cons
+
+Answer
+
+Linear models with transformed variables 
+
+Pros
+
+Answer
+
+Cons
+
+Answer
+
+
+
+Non-linear models
+
+Pros
+
+-  Can fit the untransformed data, that have non-linear relationships
+
+Cons
+
+- Our residuals may still not meet the assumptions of normally distributed and identically distributed
+- More complex methods to solve non-linear fits (we may not be guaranteed to find the optimal solution) 
+- Communication: Non-linear models are more complex. People are unfamiliar with them than linear models
+
+Hoping to talk about non-linear models in a few lectures....
