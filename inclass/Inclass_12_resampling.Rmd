@@ -1,0 +1,232 @@
+---
+title: "Inclass_11_resampling"
+author: "Darrell Sonntag"
+date: "2024-02-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+```
+
+What do you do if your data are far from being normally distributed?
+
+Remember the ozone I/O ratios, and how we calculated average I/O by Air Conditioning type, and we calculated 95% confidence intervals for each type
+
+The data seemed approximately normal, and we had relatively small sample sizes (<30)
+We are worried about how appropriate the t-distribution is for calculating confidence intervals of our mean I/O ozone data
+
+What are some other options?
+
+We can use re-sampling techniques.
+
+Good resource (and example) on resampling here: 
+
+They use their own functions developed in the moderndive package
+<https://moderndive.com/8-confidence-intervals.html>
+
+Resample my data from the ozone.ave.house 
+
+First, read in in the ozone data that we analyzed in Inclass_09_intro_statistics.Rmd
+
+Let's do it again, so that we are all using the same names for the data. 
+
+Read in the data 
+
+```{r}
+
+ozone.wide <- read_csv("..//..//CE594R_data_science_R//data//ozone.I.O.csv")
+
+```
+
+
+
+```{r}
+
+## Calculate means by individual house (because we had several repeat measurements)
+## and add ac.type
+
+ozone.ave.house <- ozone.wide %>%
+  group_by(House.Number,ac.type ) %>%
+  summarize(ave_ozone_IO = mean(In_Out_ratio)) %>%
+  mutate(ac.type = ac.type) %>% ## add shorthand for ac.type
+  ungroup() %>% ## we are going to group this using different variables in the future
+  arrange(ave_ozone_IO)
+
+```
+
+
+Create two separate data.frames from ozone.ave.house
+
+  - One for each ac.type
+
+
+```{r}
+
+ozone.ave.house.ac <- ozone.ave.house %>%
+                      ## filter
+  
+ozone.ave.house.ec <- ozone.ave.house %>%
+                      ## filter
+
+```
+
+
+Use the dplyr function slice_sample to sample with replacement the rows from ozone.ave.house.ac
+
+Arrange the data by House.Number
+
+Take a look at our resampled data
+
+
+```{r}
+resample.ac <- ##  %>%
+               
+
+```
+
+In a for loop, resample from each of my tables 1000 times. Store the results of all the samples in a large data.frame
+
+```{r}
+#resample.ac <- data.frame()
+#resample.ec <- data.frame()
+
+# nboots
+
+# for loop from 1 to nboots 
+
+## create a resample.ac.i
+
+## create a resample.ec.i
+
+## bind the resample.ac and resample.ac.i together
+## bind the resample.ec and the resample.ec.i together
+
+
+## put all your samples together
+resample.all <- bind_rows(resample.ac,resample.ec)
+
+```
+
+Now calculate the mean from each resample (group_by ac.type and sample)
+
+```{r}
+
+## resample.means <- 
+
+```
+
+Plot the means using geom_histogram, separately for each ac.type using facet_grid
+
+```{r}
+
+
+
+```
+
+We could arrange the means from smallest to largest, and grab the one that aligns with the 2.5% and 97.5 percentile. 
+Or we could use the quantile function to return the value 
+
+Use quantile in a group_by and summarize statement to calculate the 95% confidence intervals
+
+?quantile
+
+```{r}
+
+resample.quantiles <- 
+
+
+```
+
+Plot the histogram with lines for the 2.5 and 97.5th percentiles
+Use same code above, but add vertical lines using geom_vline(aes(xintercept=))
+
+
+```{r}
+
+
+  #geom_vline(data=resample.quantiles,aes(xintercept=quantile.2.5)) +
+
+```
+
+Now plot the mean values and the 95% confidence interavals from the resamples
+
+Use geom_col
+geom
+
+```{r}
+
+
+      #geom_col
+      #geom_errorbar
+
+```
+
+### Compare the confidence intervals, to 95% CI intervals from a t-distribution side by side
+
+Now calculate the average of the averages, and a 95% confidence intervals
+
+```{r}
+
+ozone.ave.type.2 <- ozone.ave.house %>%
+    group_by(ac.type) %>%
+    summarize(mean = mean(ave_ozone_IO),
+            sd = sd(ave_ozone_IO),
+            n = sum(!is.na(ave_ozone_IO))) %>%
+  mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided 
+  mutate(bound = tcrit*sd/sqrt(n)) %>%
+  mutate(lower.95 = mean-bound) %>%
+  mutate(upper.95 = mean+bound ) 
+
+```
+
+```{r}
+
+library(tinytable)
+
+tt(ozone.ave.type.2,caption = "I/O t-distribution 95% confidence intervals ",digits=3)
+
+tt(resample.quantiles, caption = "Resampling 95% confidence intervals", digits=3)
+
+```
+Plot them side-by-side
+
+Add a column called 'estimate' to distinguish the two 95% CI's
+
+Name the lower and upper estimates with the same name
+
+Combine them into one data.frame
+
+```{r}
+
+ozone.ave.type.2$estimate = 't-distribution'
+
+ozone.int.comp <- resample.quantiles %>%
+                      mutate(lower.95 = quantile.2.5) %>%
+                      mutate(upper.95 = quantile.97.5) %>%
+                      mutate(estimate = 'resampling' ) %>%
+                      bind_rows(ozone.ave.type.2)
+
+```
+Now plot them side by side
+
+x = estimate
+y = mean
+fill = estimate
+geom_col
+geom_errorbar
+
+```{r}
+
+
+
+```
+
+Question:  is the t-distribution a reasonable assumption in our case?
+
+
+
+
+

@@ -233,6 +233,56 @@ winter.coef <- winter.lm %>%
 
 ```
 
+Look at coefficients when we fit the models separately
+
+
+```{r}
+
+## filter SidePak.visit.sum to just select the Summer visits, and the Winter visits
+
+Sidepak.summer <- SidePak.visit.sum %>%
+                  filter(season == 'Summer') 
+
+## fit a lm model to the summer data, predicting the In concentration from the Outdoor concentration
+
+summer.lm <- lm(formula = In_mean ~ Out_mean + ac.type + Out_mean:ac.type, data=Sidepak.summer)
+
+## colon includes interaction
+## * includes interaction and individual terms
+?formula
+
+## Save the coefficients in a data.frame using get_regression_table
+
+summer.coef <- summer.lm %>%
+               get_regression_table() %>%
+               mutate(season = 'Summer')
+
+##intercept term for EC model
+summer.coef[1,2]+summer.coef[3,2]
+
+## the slope for the EC model
+summer.coef[2,2] + summer.coef[4,2]
+
+
+Sidepak.summer.EC <- SidePak.visit.sum %>%
+                  filter(season == 'Summer') %>%
+                  filter(ac.type == 'EC')
+
+## fit a lm model to the summer data, predicting the In concentration from the Outdoor concentration
+
+summer.ec.lm <- lm(formula = In_mean ~ Out_mean, data=Sidepak.summer.EC)
+
+summary(summer.ec.lm)
+
+
+```
+
+
+Show class how coefficients work
+Show them that we get the same answer whether we combine the data by ac.type, or fit separate linear models for each one...
+
+
+
 ## Look at the results
 
 Question: Is the slope significantly different between the two ac.types in the summer?
@@ -273,7 +323,7 @@ names(summer.lm)
 ```
 We can access the fitted.values and the residuals from the lm.object
 
-Then plot the
+
 
 ```{r}
 summer.lm.predictions <- bind_cols(summer.lm$fitted.values, 
@@ -292,11 +342,6 @@ Note: We could use the augment function from broom that we learned in InClass10,
 We will use that next time...
 
 
-Next time-- show class how coefficients workj
-
-Show them that we get the same answer whether we combine the data by ac.type, or fit separate linear models for each one...
-
-
 ?bind_cols
 
 
@@ -304,35 +349,35 @@ Let's also look at the histogram and q-q plot...
 
 ```{r}
 
-#hg <- ggplot(data =,aes()) + 
- # geom_histogram(bins=6)+
-#  theme_bw()+
-#  labs(x='residuals', y= 'count')  +
-#  theme(legend.position= 'none')
+
+hg <- ggplot(data =summer.lm.predictions,aes(x=residuals)) + 
+  geom_histogram(bins=6)+
+  theme_bw()+
+  labs(x='residuals', y= 'count')  +
+  theme(legend.position= 'none')
 
 hg
 
-#qq <- ggplot(, ) +
-#    geom_qq()+
-#    geom_qq_line()+
-#    labs(title = 'Normal q-q plot',y='residuals', x='z-score') + 
-#    theme(legend.position = 'none')
+qq <- ggplot(data = summer.lm.predictions,aes(sample = residuals)) +
+    geom_qq()+
+    geom_qq_line()+
+    labs(title = 'Normal q-q plot',y='residuals', x='z-score') + 
+    theme(legend.position = 'none')
 
 hg + qq + plot_layout(ncol = 2)
 
 ```
 They are ok.., but not perfect. It appears that the points from the wildfire are influencing the results. 
 
-
-
 How sensitive our our results when they are removed?
 
 Filter to just the summer no fire observations
 
 ```{r}
-SidePak.summer.no.fire <- 
+SidePak.summer.no.fire <- SidePak.visit.sum %>%
+                          filter(day.type == 'Normal') %>%
+                          filter(season == 'Summer')
   
-
 ```
 
 Fit a linear model to those observations
@@ -341,17 +386,23 @@ Fit a linear model to those observations
 
 class(SidePak.summer.no.fire)
 
-summer.no.fire.lm <-
+summer.no.fire.lm <- lm(formula = In_mean ~ Out_mean + ac.type + Out_mean:ac.type, data=SidePak.summer.no.fire)
 
 ## use get_regression_coeff
   
-ozone.coeff.summer.no.fire <- 
+ozone.coeff.summer.no.fire <- summer.no.fire.lm %>%
+                              get_regression_table() %>%
+                              mutate(id = 'summer no fire')
 
+  
+  
 ```
 put the results into a table either using kable() or tt()
 ```{r}
 library(tinytable)
 tt(ozone.coeff.summer.no.fire)
+
+
 ```
 Results: 
 When we remove the values, the slope is no longer significantly different between AC and EC homes.
@@ -365,8 +416,8 @@ Augment the results using the augment function from 'broom'
 ```{r}
 library(broom)
 
-#predict.summer.no.fire <-  %>%
-#                          augment(data = , interval = "confidence")
+predict.summer.no.fire <- summer.no.fire.lm %>%
+                          augment(data = SidePak.summer.no.fire, interval = "confidence")
 
 names(predict.summer.no.fire)
 
@@ -376,10 +427,10 @@ names(predict.summer.no.fire)
 ## look at residuals vs. predictions
 
 ```{r}
-#ggplot(data=) +
-#  geom_point(alpha=0.5)+
-#  geom_hline()+
-#  theme_bw()
+ggplot(data=predict.summer.no.fire, aes(y=.resid, x=.fitted)) +
+  geom_point(alpha=0.5)+
+  geom_hline(yintercept=0)+
+  theme_bw()
 ```
 
 Let's also look at the histogram and q-q plot of the residuals without the fire
