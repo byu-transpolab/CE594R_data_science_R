@@ -1,0 +1,249 @@
+---
+title: "Inclass_11_resampling"
+author: "Darrell Sonntag"
+date: "2024-02-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(knitr)
+```
+
+What do you do if your data are far from being normally distributed?
+
+Remember the ozone I/O ratios, and how we calculated average I/O by Air Conditioning type, and we calculated 95% confidence intervals for each type
+
+The data seemed approximately normal, and we had relatively small sample sizes (<30)
+We are worried about how appropriate the t-distribution is for calculating confidence intervals of our mean I/O ozone data
+
+What are some other options?
+
+We can use re-sampling techniques.
+
+Good resource (and example) on resampling here: 
+
+They use their own functions developed in the moderndive package
+<https://moderndive.com/8-confidence-intervals.html>
+
+Resample my data from the ozone.ave.house 
+
+First, read in in the ozone data that we analyzed in Inclass_09_intro_statistics.Rmd
+
+Let's do it again, so that we are all using the same names for the data. 
+
+Read in the data 
+
+```{r}
+
+ozone.wide <- read_csv("..//..//CE594R_data_science_R//data//ozone.I.O.csv")
+
+```
+
+
+
+```{r}
+
+## Calculate means by individual house (because we had several repeat measurements)
+## and add ac.type
+
+ozone.ave.house <- ozone.wide %>%
+  mutate(ac.type = `Type of Air Conditioner`) %>% ## add shorthand for ac.type
+  group_by(House.Number,ac.type ) %>%
+  summarize(ave_ozone_IO = mean(In_Out_ratio)) %>%
+  ungroup() %>% ## we are going to group this using different variables in the future
+  arrange(ave_ozone_IO)
+
+```
+Create two separate data.frames from ozone.ave.house
+
+  - One for each ac.type
+
+```{r}
+
+ozone.ave.house.ac <- ozone.ave.house %>%
+                      filter(ac.type == 'Central')
+  
+ozone.ave.house.ec <- ozone.ave.house %>%
+                      filter(ac.type == 'Evaporative')
+                      
+
+```
+
+
+Use the dplyr function slice_sample to sample with replacement the rows from ozone.ave.house.ac
+
+Arrange the data by House.Number
+
+Take a look at our resampled data
+
+```{r}
+resample.ac <-  ozone.ave.house.ac %>%
+                slice_sample(n=17,replace=TRUE) %>%
+                arrange(House.Number)
+               
+```
+
+In a for loop, resample from each of my tables 1000 times. Store the results of all the samples in a large data.frame
+
+```{r}
+resample.ac <- data.frame()
+resample.ec <- data.frame()
+
+nboots <- 1000
+
+# for loop from 1 to nboots 
+
+for (i in 1:nboots) {
+  
+            resample.ac.i <- ozone.ave.house.ac %>%
+                slice_sample(n=17,replace=TRUE) %>%
+                mutate(sample = i)
+
+            ## create a resample.ec.i
+            resample.ec.i <- ozone.ave.house.ec %>%
+                            slice_sample(n=nrow(ozone.ave.house.ec),replace=TRUE) %>%
+                            mutate(sample = i)
+            
+            ## bind the resample.ac and resample.ac.i together
+            ## bind the resample.ec and the resample.ec.i together
+            
+            resample.ac <- bind_rows(resample.ac,resample.ac.i)
+            resample.ec <- bind_rows(resample.ec,resample.ec.i)
+            
+            }
+
+          
+## put all your samples together
+resample.all <- bind_rows(resample.ac,resample.ec)
+
+```
+
+Now calculate the mean from each resample (group_by ac.type and sample)
+
+```{r}
+
+resample.means <- resample.all %>%
+                  group_by(sample, ac.type) %>%
+                  summarize(sample_mean = mean(ave_ozone_IO))
+          
+```
+
+Plot the means using geom_histogram, separately for each ac.type using facet_grid
+
+```{r}
+ggplot(data=resample.means, aes(x=sample_mean,fill=ac.type)) +
+  geom_histogram(bins=50) + 
+  facet_wrap(~ac.type, scales='free')
+
+```
+
+We could arrange the means from smallest to largest, and grab the one that aligns with the 2.5% and 97.5 percentile. 
+Or we could use the quantile function to return the value 
+
+Use quantile in a group_by and summarize statement to calculate the 95% confidence intervals
+
+?quantile
+
+```{r}
+
+resample.quantiles <- resample.means %>%
+                      group_by(ac.type) %>%
+                      summarize(mean = mean(sample_mean),
+                                lower.95 = quantile(sample_mean,probs= 0.025),
+                                upper.95 = quantile(sample_mean,probs = 0.975))
+
+```
+
+Plot the histogram with lines for the 2.5 and 97.5th percentiles
+Use same code above, but add vertical lines using geom_vline(aes(xintercept=))
+
+
+```{r}
+ggplot(data=resample.means, aes(x=sample_mean,fill=ac.type)) +
+  geom_histogram(bins=50) + 
+  facet_wrap(~ac.type, scales='free') +
+  geom_vline(data=resample.quantiles,aes(xintercept=lower.95)) +
+  geom_vline(data=resample.quantiles,aes(xintercept=upper.95))
+```
+
+Now plot the mean values and the 95% confidence interavals from the resamples
+
+Use geom_col
+geom
+
+```{r}
+
+ggplot(data=resample.quantiles, aes(x=ac.type, y= mean,fill=ac.type))+
+  geom_col()+
+  geom_errorbar(aes(ymin = lower.95, ymax=upper.95),width = 0.25)
+
+```
+
+### Compare the confidence intervals, to 95% CI intervals from a t-distribution side by side
+
+Now calculate the average of the averages, and a 95% confidence intervals
+
+```{r}
+
+ozone.ave.type.2 <- ozone.ave.house %>%
+    group_by(ac.type) %>%
+    summarize(mean = mean(ave_ozone_IO),
+            sd = sd(ave_ozone_IO),
+            n = sum(!is.na(ave_ozone_IO))) %>%
+  mutate(tcrit = qt(.975,df=(n-1))) %>% ## two-sided 
+  mutate(bound = tcrit*sd/sqrt(n)) %>%
+  mutate(lower.95 = mean-bound) %>%
+  mutate(upper.95 = mean+bound ) 
+
+```
+
+```{r}
+
+library(tinytable)
+
+tt(ozone.ave.type.2,caption = "I/O t-distribution 95% confidence intervals ",digits=3)
+
+tt(resample.quantiles, caption = "Resampling 95% confidence intervals", digits=3)
+
+```
+Plot them side-by-side
+
+Add a column called 'estimate' to distinguish the two 95% CI's
+
+Name the lower and upper estimates with the same name
+
+Combine them into one data.frame
+
+```{r}
+
+ozone.ave.type.2$estimate = 't-distribution'
+
+ozone.int.comp <- resample.quantiles %>%
+                      mutate(lower.95 = quantile.2.5) %>%
+                      mutate(upper.95 = quantile.97.5) %>%
+                      mutate(estimate = 'resampling' ) %>%
+                      bind_rows(ozone.ave.type.2)
+
+```
+Now plot them side by side
+
+x = estimate
+y = mean
+fill = estimate
+geom_col
+geom_errorbar
+
+```{r}
+
+
+
+```
+
+Question:  is the t-distribution a reasonable assumption in our case?
+
+
+
+
+
