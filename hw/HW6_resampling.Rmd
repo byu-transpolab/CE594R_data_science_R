@@ -38,7 +38,27 @@ summer.2022.gas.NO <- summer.2022.gas
   
 ```
 
-Calculate 95% CIs for groups 
+Plot box plots of the data. With panels for each location, the model year on the x-axis, and different colors for each 
+Compliance level (dodged). You can use the code below
+
+```{r}
+ggplot(data = summer.2022.gas.NO, aes(x = year_cuts, y = ER, color= Compliance)) +
+geom_boxplot(position = position_dodge(width = 0.5),width=0.5) +
+facet_wrap(.~ location, scales = "free_y") +
+labs(title = "NO emission rates by location, model year, and Compliance level",
+     x = "MY group",
+     y = "NO g/kg") +
+theme(axis.text.x = element_text(size=8, angle=90,hjust = 1, vjust =0.2))
+
+ggsave("../../CE594R_data_science_R/figs/NO_boxplots.png")
+
+```
+
+
+![](../../CE594R_data_science_R/figs/NO_boxplots.png)
+
+
+Calculate the means and 95% CI of the mean for each groups 
 
 Let's calculate the means by 3 model year groups (using year_cuts), compliance status, and location
 
@@ -187,6 +207,31 @@ Calculate the 2.5 and 97.5% quantiles
 
 resample.NO.intervals <- 
 ```
+Plot histograms of the resample means for each group, with the 95% CIs like the figure below 
+
+```{r}
+
+#ggplot(data = resample.NO.means,aes(x = sample_mean,fill=Compliance )) + 
+  #geom_histogram
+  #geom_vline
+  #geom_vline
+  #facet_wrap(.~location + year_cuts+Compliance, scales='free') +
+  #theme_bw()+
+  #labs(x='group', y= 'NO g/kg')  +
+  #theme(strip.text = element_text(size=8),legend.position="none")
+
+#ggsave("../../CE594R_data_science_R/figs/NO_resampling_means.png")
+
+```
+
+
+![](../../CE594R_data_science_R/figs/NO_resampling_means.png)
+
+Question: Why do some of the resampling mean distributions have multiple modes, or clusters?
+
+Answer: Some of the samples have 1-2 very large outliers. For example: Timp Hwy East - Not compliant 2016-2023, has 38 vehicles, with one very large outlier. If the resample includes multiple occurances of the high emitting vehicle, the mean is significantly higher. So, each cluster represents the high emitting vehicle being present 1, 2, 3, 4 or 5 times in the resample. 
+
+
 
 Repeate the plot of the means with with error bars for the 95% quantiles, with 
 separate panels for year cuts and location (like your second plot) 
