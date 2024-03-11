@@ -443,9 +443,10 @@ list. Here's is an example of using map here:
 
 <https://purrr.tidyverse.org/reference/map.html>
 
-Info on the group_split here. You could also use the base R version of
-split(), and then use lapply()
+Info on the group_split here. 
 <https://dplyr.tidyverse.org/reference/group_split.html>
+
+You could also use the base R version of split(), and then use lapply()
 
 Map() returns a list of output. I then used list_rbind() to bind all the
 list elements of the back together into a dataframe/tibble).

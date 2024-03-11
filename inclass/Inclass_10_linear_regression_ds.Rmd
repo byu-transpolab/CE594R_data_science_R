@@ -374,7 +374,7 @@ Use mutate to add a new column called ozone.predict
 You could write out the function
 (preferred) Use the predict function
 
-?predict()
+?predict.lm()
 
 
 ```{r}

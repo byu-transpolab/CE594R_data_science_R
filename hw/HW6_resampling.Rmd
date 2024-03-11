@@ -1,0 +1,242 @@
+---
+title: "HW6 resampling"
+author: "Darrell Sonntag"
+date: "2024-03-04"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(moderndive)
+```
+
+
+Read in the data we used for HW5
+
+We will evaluate the vehicle emissions data we evaluated in HW5. 
+
+Let's evaluate confidence intervals for the emission rates of nitrogen oxide (NO), from gasoline vehicles. 
+
+Let's evaluate the 'summer.2022.gas' dataset. 
+
+Let's just look at the MY 1994 and newer vehicles, that have electronic vehicle emission tests. 
+
+Create a dataset called summer.2022.gas.NO
+
+- filter to just the compliance in Compliant, Not Compliant and NOnIM
+- filter to just the pollutant == NO
+- filter to model year 1995 and laters
+- remove missing NO emission rates
+
+```{r}
+summer.2022.gas.NO <- summer.2022.gas 
+                    #filter
+
+  
+```
+
+Calculate 95% CIs for groups 
+
+Let's calculate the means by 3 model year groups (using year_cuts), compliance status, and location
+
+Then, let's calculate the 95% CI using the t-distribution
+
+$$
+\bar{x}\,\pm t_{\alpha/2,n-1} \, \cdot \frac{s}{\sqrt{n}}
+$$
+
+```{r}
+NO.loc.comp.summary <- 
+
+```
+Plot the means for each of the group with 95% CI
+
+Plot Model year on the x-axis
+ER on the y-axis
+Separate panels for each location
+Dodge by Compliance
+
+
+
+```{r}
+
+
+```
+
+Question: Which error bars are the widest?
+Question: What is the n for these groups?
+
+Answer: 
+
+
+The wide confidence intervals for some of the groups, makes is difficult to observe differences in others. 
+
+Let's plot the means again for each of the group with 95% CI
+
+Except this time, let's have separate panels for location AND model year group
+Plot Compliance on the x-axis
+Add the number of observations in each group using geom_text
+
+```{r}
+
+
+
+```
+Like the plot below: 
+
+![](../../CE594R_data_science_R/figs/NO_t_conf.png)
+
+
+Question: How many of the confidence intervals include 0?
+
+Answer: 
+
+
+
+Notice the 95% confidence intervals using the t-distribution are very large---
+
+for some groups, the large N may compensate for the data being highly skewed and non-normal. 
+
+However, for the small samples or samples with large outliers the distribution of the means may not be well approximated with a t-distribution. 
+
+Let's use resampling to calculate 95% confidence intervals that are useful for non-normal and small sample size data
+
+First let's use the loop method. 
+
+We have 3 locations X 3 compliance levels X 3 model year groups = 27 unique groups
+
+We could subdivide the data into 27 unique groups...and then resample from each (like we did in class)
+
+And then resample using a for loop
+However, that would be difficult with 27 unique groups. 
+
+I created two functions that does the resampling. The first 1 uses loops, the second uses a function from moderndive (preferred)
+
+Function 1: 
+
+I created the looping function here: 
+
+
+```{r}
+
+resample_cars <- function(data.i){
+                  
+                     }
+
+```
+
+Function 2 (preferred)
+
+When I tried the above function with loops it took way too long...( sometimes it wouldn't finish it for me)
+
+So, I used the rep_sample_n function within my function from the moderndive package
+
+<https://moderndive.com/8-confidence-intervals.html#original-workflow>
+
+```{r}
+resample_cars <- function(data.i){
+            
+                  #resample <- rep_sample_n( #d
+                  # 
+                  }
+
+```
+
+
+Apply the resample_cars() function use the group_by, group_split, map, and list_rbind
+
+Info on the group_split here. 
+<https://dplyr.tidyverse.org/reference/group_split.html>
+
+map
+
+<https://purrr.tidyverse.org/reference/map.html>
+
+Map() I applied the function I created above. Map
+returns a list of output. I then used list_rbind() to bind all the
+list elements of the back together into a dataframe/tibble).
+
+You could also use the base R version of split(), and then use lapply()
+
+
+```{r}
+resample.NO <- summer.2022.gas.NO  %>%
+                       # group_by( %>%  
+                       #group_split %>%
+                       #map
+                       #list_rbind
+
+```
+
+Summarize the means by replicate 
+
+```{r}
+
+names(resample.NO)
+
+resample.NO.means <- 
+                              
+```
+
+Calculate the 2.5 and 97.5% quantiles
+
+```{r}
+
+resample.NO.intervals <- 
+```
+
+Repeate the plot of the means with with error bars for the 95% quantiles, with 
+separate panels for year cuts and location (like your second plot) 
+
+Like the plot below
+
+![](../../CE594R_data_science_R/figs/NO_resampling_conf.png)
+
+```{r}
+
+
+```
+How many of groups have confidence intervals that include zero?
+
+Now just 5 of the 27 groups have confidence intervals that include zero
+(dropped from 9). 
+
+
+Bind the summary data from the two methods together, and graph them side by side
+
+
+```{r}
+
+
+
+```
+
+
+
+![](../../CE594R_data_science_R/figs/NO_conf_comparison.png)
+
+How are the 95% confidence intervals different between the two methods?
+
+Answer: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
