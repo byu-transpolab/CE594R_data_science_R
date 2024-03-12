@@ -221,8 +221,6 @@ Combine them into one data.frame
 ozone.ave.type.2$estimate = 't-distribution'
 
 ozone.int.comp <- resample.quantiles %>%
-                      mutate(lower.95 = quantile.2.5) %>%
-                      mutate(upper.95 = quantile.97.5) %>%
                       mutate(estimate = 'resampling' ) %>%
                       bind_rows(ozone.ave.type.2)
 
@@ -236,14 +234,20 @@ geom_col
 geom_errorbar
 
 ```{r}
-
+ggplot(data=ozone.int.comp,
+       aes(x=estimate, y= mean, fill=estimate))+
+      geom_col()+
+      geom_errorbar(aes(ymin=lower.95,ymax=upper.95,width=0.25))+
+      facet_grid(.~ac.type, scales='free') +
+      theme_bw()+
+      labs(y='I/O Ozone ratio')
 
 
 ```
 
 Question:  is the t-distribution a reasonable assumption in our case?
 
-
+Yes. We get practically the same t-distributions. The 95% confidence intervals from resampling are a little bit tighter than from t-distributions. But the t-distribution assumption appears pretty reasonable. 
 
 
 
