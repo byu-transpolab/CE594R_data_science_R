@@ -1,0 +1,376 @@
+---
+title: "InClass 13 Nonlinear regression"
+author: "Darrell Sonntag"
+date: "2024-03-03"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+
+```
+
+Look at the mean model predictions and confidence intervals from HW5
+
+![](../../CE594R_data_science_R/figs/predict_lnER_real_conf.png)
+
+```{r}
+ggplot(data = predict.lm.ln.NH3,aes(x = Year, color=Compliance, fill=Compliance)) +
+    geom_line(aes(y=fitted_real), size = 1)+
+    geom_ribbon(aes(ymin = lower_real, ymax = upper_real,fill=Compliance),alpha=0.3) +
+    facet_wrap(~location)+
+    theme_bw()
+
+#ggsave("../../CE594R_data_science_R/figs/predict_lnER_real_conf.png")
+```
+
+What are some issues with our model fitting steps?
+
+-   We threw out \~1000 negative values. What if there tended to be more negative values on the compliant or not compliant vehicles?...
+
+-   Let's fit a smoothing function to the real (untransformed) data
+
+-   Let's smooth by location and Compliance type
+
+-   Let's plot those with the 95% confidence intervals
+
+-   let's use Loess (localized regression smoothing)
+
+-   You can adjust the 'span' to get a "good smooth"
+
+![](../../CE594R_data_science_R/figs/NH3_smooth.png)
+
+```{r}
+
+names(summer.2022.gas.NH3)
+
+ggplot(data = summer.2022.gas.NH3,aes(x = Year, y=ER,color=Compliance)) +
+    geom_smooth(method = 'loess',span = 1.5,aes(fill = Compliance))+
+    facet_wrap(~location)+
+    theme_bw()
+
+ggsave("../../CE594R_data_science_R/figs/NH3_smooth.png")
+
+```
+
+How do the model estimates from our log-linear model compare to our non-linear model?
+
+Do the magnitude of our predictions change?
+
+Yes! The University avenue predictions in 1995 changed from "\<" 1 mg. Now they are "\>" 1 mg/kg
+
+Wait... shouldn't the predictions with the real-data be lower (since we included all the negative values?)
+
+Let's think about the mean of exponent values
+
+The exponent of the mean of the ln(x) is called the geometric mean-- and is not equal to the sample mean.
+
+In other words:
+
+exp(mean(ln(x))) != mean(x)
+
+The mean of x will be more influenced by outliers. In our case, ln(x) reduces the distance to the positive outliers, the geometric mean is closer to the cloud of data at smaller values.
+
+Do the relative order of the model estimates change regarding the compliance variables change?
+
+Yes! Now the 'Not compliant' vehicles tend to have higher mean values across model years
+
+Lessons:
+
+Linear models with untransformed variables
+
+Pros
+
+-   Can be easier interpret coefficients
+-   Fit will be to the mean of the data
+-   Don't lose any negative variables
+
+Cons
+
+-   The relationship may be non-linear
+-   Residuals may be highly non-normal and can't run accurate diagnositcs
+-   May need to make a complex linear model to fit the data (polynomial terms and interaction terms) that is difficult to interpret
+
+Transformed variables
+
+Pros
+
+-   May be able to fit a linear form to a transformed variable (such as a log-linear relationship)
+-   May be able to correct the residuals to be approximately normal
+
+Cons
+
+-   More difficult to interpret the results
+-   Our model doesn't fit to the mean of the real-data, but fits the mean of the transformed data
+-   This may discount the impact of outlier values, that may be very important to the mean statistic
+-   We may lose data
+
+Non-linear models
+
+Pros
+
+-   Can fit the untransformed data, that have non-linear relationships
+
+Cons
+
+-   Our residuals may still not meet the assumptions of normally distributed and identically distributed
+-   More complex methods to solve non-linear fits (we may not be guaranteed to find the optimal solution)
+-   Communication: Non-linear models are more complex. People are unfamiliar with them than linear models
+
+# Heavy-duty truck example
+
+Read in heavy-duty data from Utah Perry Campaign for 2011 and later trucks
+
+```{r}
+
+hd.temp <- read_csv("..//data//HD.UT.TEMP.NOX.csv")
+
+```
+
+Explore data-- plot box plots by model year
+
+```{r}
+
+names(hd.temp)
+
+ggplot(hd.temp,aes(x = factor(Year), y = ER, fill = Campaign)) +
+  geom_boxplot(position=position_dodge2(preserve='single'),  width = 1) + 
+  xlab("Model Year") + ylab("Emissions Rate (g/kg fuel)")+
+  scale_fill_manual(values = c("Winter 2020" = "skyblue2", "Summer 2023" = "orange2"))
+
+
+```
+
+Box plots by Age
+
+```{r}
+
+hd.temp.plot.age <- hd.temp %>%
+      mutate(age = factor(age,levels = 12:0, ordered=T))
+
+
+  ggplot(hd.temp.plot.age, aes(x = factor(age), y = ER, fill = Campaign)) +
+  geom_boxplot(position=position_dodge2(preserve='single'),  width = 1) + 
+  xlab("age") + ylab("Emissions Rate (g/kg fuel)")+
+  scale_fill_manual(values = c("Winter 2020" = "skyblue2", "Summer 2023" = "orange2"))
+
+
+```
+
+It appears that there is an exponential trend between age and emissions. Based on our previous experience, we believe that temperature also has an exponential trend.
+
+It also appears that the effect of temperature is multiplicative and not additive. Meaning that the effect of temperature is proportional to the emission rates by age. This points us to using an exponential model.
+
+We could take the log of emission rate and conduct linear regression--but then we have negative values. Also, we want to have an accurate estimate of the mean (which we would not have with the log)
+
+Fit an exponential model with the following form:
+
+$$
+ER = a\cdot e^{b\cdot temperature}\cdot e^{c \cdot age}
+$$
+
+We will use the nls packages
+
+<https://www.tidymodels.org/learn/statistics/bootstrap/>
+
+Note: non-linear regression is not guaranteed to find the solution like ordinary least squares. We need to give the solver some starting places to look for a solution. The danger is that we could find a local minimum of the least squares, and not the global maximum.
+
+Note-- make sure age is numeric and not a factor (like in hd.temp.plot.age)
+
+```{r}
+names(hd.temp)
+
+nlsfit <-  nls(ER~a * exp(b*avg.temp) * exp(c*age), data = hd.temp, 
+               start = list(a=1,b=0,c=0))
+
+summary(nlsfit)
+
+
+```
+
+Compare the model fits between the two models
+
+Create a dataframe called temp.age with all combinations of temperature and vehicle ages (24, 82.5 temperature, and ages 0-12)
+
+Use the expand_grid command <https://tidyr.tidyverse.org/reference/expand_grid.html>
+
+```{r}
+
+temp.age <- expand_grid(age = 0:12,avg.temp=c(24,82.5))
+
+```
+
+Use the broom function 'augment' to predict model predictions at all the values in temp.age
+
+```{r}
+
+hd.temp.predictions <- augment(nlsfit,newdata=temp.age,interval = "confidence")
+
+```
+
+Plot the data of the predictions on top of the actual data
+
+x-axis = age 
+y-axis = Emission rate 
+Have separate facets for each temperature range (winter and summer)
+
+hd.temp (points raw data)
+hd.temp.predictions (lines)
+
+```{r}
+names(hd.temp)
+
+ggplot(data = hd.temp, aes(x=age,y=ER)) +
+  geom_jitter(width=0.1,aes(color=Campaign)) +
+  geom_line(data=hd.temp.predictions, aes(y=.fitted)) +
+  facet_wrap(~avg.temp)+
+  labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
+  scale_color_manual(values = c("Winter 2020" = "skyblue2", "Summer 2023" = "orange2"))+  
+  theme_bw() +
+  theme(legend.position = "bottom")+
+  scale_x_continuous(breaks = seq(0, 12, by = 1))
+
+```
+
+Let's look at the residuals
+
+We could use the augment function from broom that we learned in InClass10 and 11
+
+```{r}
+
+nlsfit.predictions <- augment(nlsfit,data=hd.temp)
+
+names(nlsfit.predictions)
+
+```
+
+Question: How do the residuals look?
+
+```{r}
+ggplot(data=nlsfit.predictions, aes(x=.fitted,y=.resid)) +
+  geom_point(alpha=0.5)+
+  geom_hline(yintercept=0)+
+  theme_bw()
+
+```
+
+Answer: Not normally distributed, not constant variance, not identically distributed across predicted values. 
+
+For prediction, this is fine. But for estimating standard errors for our estimates, and for conducting statistical tests, this could be an issue.
+
+Try out the nls fits package.
+
+<https://cran.r-project.org/web/packages/nlstools/nlstools.pdf>
+
+Use nlsBoot
+
+```{r}
+library(nlstools)
+
+hd.boot <- nlsBoot(nlsfit,niter=1000)
+
+summary(hd.boot)
+
+```
+
+Predict boot strap intervals
+
+Use nlsBootPredict
+
+```{r}
+
+hd.temp.boot.predict <- nlsBootPredict(hd.boot,newdata=temp.age,interval='confidence')
+
+
+
+```
+
+Then bind the predicted confidence intervals with the model prediction
+
+```{r}
+hd.temp.predict.intervals <- 
+  
+  
+```
+
+Question: Why is bootstrapping is a good approach for estimating the uncertainty of the predictions?
+
+Answer:
+
+Plot the results (with respect to age)
+
+Have separate panels for each temperature Plot age on the x-axis Plot NOx emissions on the y-axis Use geom_jitter to plot the data Use geom_line and geom_ribbon to plot the predicted values
+
+```{r}
+ggplot(,
+  #aes(
+  #geom_jitter( +
+  #geom_line(
+  #geom_ribbon(
+  #facet_wrap() +
+  #labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
+  #scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
+  #theme_bw() +
+  #theme(legend.position = "bottom")+
+  #scale_x_continuous(breaks = seq(0, 12, by = 1))
+
+```
+
+Predict confidence intervals with respect to temperature (from 0 to 100 F)
+
+Create a temp.age.2 using expand_grid for all temperatures
+
+```{r}
+# temp.age.2 <- expand_grid(
+
+```
+
+Find the model fit using augment and temp.age.2
+
+```{r}
+# hd.temp.predictions.2 <- 
+
+```
+
+Predict the confident intervals using nlsBootPredict
+
+```{r}
+
+hd.temp.boot.predict.2 <- 
+
+```
+
+Bind the confidence interval predictions to the predictions of the means
+
+```{r}
+hd.temp.predict.intervals.2 <- 
+  
+```
+
+Plot the predicted results and the observed data
+
+Have separate panels for each age Plot ave.temp on the x-axis Plot NOx emissions on the y-axis Use geom_jitter to plot the data Use geom_line and geom_ribbon to plot the predicted values
+
+```{r}
+
+names(hd.temp)
+
+#ggplot(
+  #aes(
+  #geom_jitter(width = 0.2, height=0) +
+  #geom_line(data = hd.temp.predict.intervals.2, 
+  #          aes(y = .fitted), color = "black", size = 1.2) +
+  #geom_ribbon(data = hd.temp.predict.intervals.2,
+   #           aes(y=.fitted,ymin = `2.5%`,ymax = `97.5%`),alpha=0.3, color='grey') +
+  #facet_wrap(~age, scales='free_y') +
+  #  labs(y = "NOX Emission Rate (g/kg of fuel)")+
+  #scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
+  #theme_bw() +
+  #theme(legend.position = "bottom")
+  
+
+```
