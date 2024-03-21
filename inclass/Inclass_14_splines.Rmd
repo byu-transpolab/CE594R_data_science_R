@@ -1,0 +1,317 @@
+---
+title: "Inclass_14_GAM"
+author: "Darrell Sonntag"
+date: "2024-03-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+We are going to continue analyzing the HD.UT.TEMP.NOX data we analyzed in InClass_13. 
+
+This time we will analyze it with regression splines and smoothing splines
+
+
+```{r}
+
+hd.temp <- read_csv("..//..//CE594R_data_science_R//data//HD.UT.TEMP.NOX.csv")
+
+names(hd.temp)
+```
+
+First, let's just take a look at the summer data
+
+Create a new data.frame with just the Campaign = 'Summer 2023'
+
+```{r}
+hd.temp.summer <- hd.temp %>%
+                    filter(Campaign == 'Summer 2023')
+```
+
+We are going to fit regression splines to the data across age. 
+
+I'm using this as my reference--this is an excellent resource of many topics
+
+<https://www.statlearning.com/>
+
+This is a course with examples based on the text book
+<https://www.science.smith.edu/~jcrouser/SDS293/>
+<https://www.science.smith.edu/~jcrouser/SDS293/labs/lab13-r.html>
+
+
+Load the library splines
+
+Create a sequence of ages from 0 to 12, by steps of 0.1
+
+Create a basis function with knots at 3, 6, and 9
+
+
+```{r}
+library(splines)
+
+age.seq <- 
+
+## create the basis functions using bs()
+
+bs.age <- 
+
+View(bs.age)
+
+```
+
+How many basis functions do we have?
+
+We have 6 basis function
+p. 273 stat learning
+cubic spline basis functions = k (knots) + 3 = 6
+
+Let's pivot bs.age longer
+
+```{r}
+
+## bind bs.age and age.seq together
+
+bs.age.df <- 
+
+## change the name to age.seq to age
+
+
+
+## pivot the basis functions (columns 1:6) longer with names_to= basis, and values_to = value
+
+bs.age.long <- 
+  
+  
+```
+Plot the basis functions
+
+```{r}
+
+#ggplot +
+  #geom_line() +
+  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  #scale_x_continuous(breaks=seq(0,12,3) )
+```
+
+## Note, we could have specified a knot at 0. However, when we fit the linear regression, it couldn't fit. Since we can determine the first one from the others first basis function = 1- others(), is the same as the first basis function. So, we couldn't fit an intercept and the first basis function. 
+
+Fit a linear regression using the basis functions
+
+```{r}
+
+#spline.fit <- 
+
+summary(spline.fit)
+
+```
+Let's re-create the basis functions to get the age effect
+
+Grab the coefficients using tidy from the broom function, conf.int = TRUE
+
+```{r}
+
+library(broom)
+
+#spline.coeff <- tidy(
+
+```
+Create coefficient dataframe with basis names and coefficients (update with names) 
+
+```{r}
+
+## Create vector of splines.names (X1: X6)
+
+# spline.names <-
+
+## bind spline coefficients to the names in a data.frame
+
+# spline.coeff.est <- 
+
+#names(spline.coeff.est) <- c('coefficient','basis')
+
+
+```
+Merge coefficients with bs.age.long, and multiply the values by the coefficients to calculate basis.fit
+
+```{r}
+
+#bs.fit <- bs.age.long %>%
+          #left_join(
+          #mutate(
+
+
+```
+
+Plot the scaled basis functions
+
+```{r}
+
+#ggplot(
+  #geom_line() +
+  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  #scale_x_continuous(breaks=seq(0,12,3) )
+
+```
+Calculate the regression spline by adding the points to the intercept
+
+First pivot bs.fit to a wider format
+
+Then sum the scaled splines 
+
+See dplyr cheat sheet c_across
+<https://dplyr.tidyverse.org/reference/c_across.html>
+
+```{r}
+
+names(bs.fit.wide)
+
+bs.fit.wide <- bs.fit %>%
+               #select(age,basis,basis.fit) %>%
+               #pivot_wider( %>%
+               #rowwise() %>%
+               #mutate(spline.sum = sum(c_across(X1:X6))) %>%
+               #mutate(spline.fit = 
+
+View(bs.fit.wide)
+
+
+```
+Plot the regression fit
+
+```{r}
+
+#ggplot(data = bs.fit,aes(x=age,y=basis.fit,color=basis))+
+  # plot the scaled basis functions
+  #geom_line() +
+    # plot the regression spline
+  #geom_line( 
+  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  #scale_x_continuous(breaks=seq(0,12,3) )
+
+```
+Now plot it along side the raw data:
+
+```{r}
+
+#ggplot(data = hd.temp.summer,aes(x=age,y=ER))+
+  #geom_jitter(width = 0.2, color = 'orange2') +
+  #geom_line(
+  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  #scale_x_continuous(breaks=seq(0,12,3) )
+
+```
+We can also use predict and calculate 95% Confidence intervals. 
+
+```{r}
+library(broom)
+
+## you can use predict, or augment. I used augment here
+## new.data = data.frame(age = age.seq)
+
+#spline.predict = 
+
+```
+
+Now plot again with the error bars
+
+```{r}
+
+#ggplot(data = hd.temp.summer,aes(x=age))+
+  #geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
+  #geom_line(
+  #geom_ribbon(
+  scale_x_continuous(breaks=seq(0,12,3)) +
+  theme_bw()
+  
+
+```
+
+Question: How can we add more flexibility? 
+
+Answer: We can add more knots (e.g. at every age)
+
+Question: Less flexibility? (smoother)
+
+Answer: Put fewer nots
+
+However, we don't want to "overfit" the data--but are looking for a function that matches the smoothness of the data. 
+
+
+
+Now let's fit the data using a smoothing spline. 
+
+A smoothing spline is "a natural cubic spline with knots at every unique value of x. The tuning parameter (lambda) controls the roughness of the smoothing spline."
+
+Section 7.5 "Smothing Splines" from James et al. (2013)
+
+G. James, D. Witten, T. Hastie, and R. Tibshirani, An Introduction to Statistical Learning, vol. 103. in Springer Texts in Statistics, vol. 103. New York, NY: Springer New York, 2013. doi: 10.1007/978-1-4614-7138-7.
+
+We use leave-one-out cross-validation error to determine the optimal smoothing parameter. 
+
+Let's try a smoothing spline, and a range of lambda's (0.001 to 10)
+
+```{r}
+
+smooth.spline.cv <-
+
+smooth.spline.lambda1 <- 
+
+smooth.spline.lambda2 <-
+
+
+summary(smooth.spline.cv)
+smooth.spline.cv$lambda
+
+```
+Predict the spline at certain x-values
+
+Use predict() which includes predict.smooth.spline
+<https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/predict.smooth.spline>
+
+```{r}
+
+## note: augment() doesn't work
+## use predict()
+
+smooth.spline.predict.cv = #predict(smooth.spline.cv, 
+                         x=data.frame(age = age.seq)) 
+                          #  convert from list to data.frame
+                         # add identifier for smooth type
+                         # rename age.1 as .fitted 
+
+smooth.spline.predict.lambda1 = predict(smooth.spline.lambda1,                                        x=data.frame(age = age.seq)) %>%
+                        as.data.frame() %>%
+                        mutate(smooth = 'lambda1') %>%
+                        rename(.fitted = age.1)
+
+                      
+smooth.spline.predict.lambda2 = predict(smooth.spline.lambda2, 
+                        x=data.frame(age = age.seq)) %>%
+                        as.data.frame() %>%
+                        mutate(smooth = 'lambda2') %>%
+                        rename(.fitted = age.1)
+
+
+smooth.spline.predict <- #bind_rows
+
+```
+Plot the smoothing spline
+
+```{r}
+
+#ggplot(data = hd.temp.summer,aes(x=age))+
+ # geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
+  #
+ #scale_x_continuous(breaks=seq(0,12,3)) +
+ #theme_bw()
+  
+```
+
+
+
+
+
