@@ -69,7 +69,22 @@ How many basis functions do we have?
 
 We have 6 basis function
 p. 273 stat learning
-cubic spline basis functions = k (knots) + 3 = 6
+Number of splines = order + number of interior knots
+
+cubic spline basis functions = 4 + 3 = 7 
+
+(for regression splines we remove the first knot)
+
+1st and last basis function (start at 1 and go to 0 by the first interior knot)
+2nd basis function (positive over two intervals)
+3rd basis function (positive over 3 intervals)
+Center basis function (in our case 4th) (positive over 4)
+
+(Functional data analysis, Ramsay et al. 2009)
+
+Here is an example of how the basis functions change functions at the knots
+
+<https://pages.mtu.edu/~shene/COURSES/cs3621/NOTES/spline/B-spline/bspline-ex-1.html>
 
 Let's pivot bs.age longer
 
@@ -119,7 +134,9 @@ Grab the coefficients using tidy from the broom function, conf.int = TRUE
 
 library(broom)
 
-#spline.coeff <- tidy(
+?tidy
+
+spline.coeff <- tidy(spline.fit,conf.int = TRUE)
 
 ```
 Create coefficient dataframe with basis names and coefficients (update with names) 
@@ -212,7 +229,7 @@ We can also use predict and calculate 95% Confidence intervals.
 ```{r}
 library(broom)
 
-## you can use predict, or augment. I used augment here
+## you can use predict or augment. I used augment here
 ## new.data = data.frame(age = age.seq)
 
 #spline.predict = 
@@ -239,7 +256,7 @@ Answer: We can add more knots (e.g. at every age)
 
 Question: Less flexibility? (smoother)
 
-Answer: Put fewer nots
+Answer: Put fewer knots
 
 However, we don't want to "overfit" the data--but are looking for a function that matches the smoothness of the data. 
 
@@ -286,7 +303,8 @@ smooth.spline.predict.cv = #predict(smooth.spline.cv,
                          # add identifier for smooth type
                          # rename age.1 as .fitted 
 
-smooth.spline.predict.lambda1 = predict(smooth.spline.lambda1,                                        x=data.frame(age = age.seq)) %>%
+smooth.spline.predict.lambda1 = predict(smooth.spline.lambda1,
+                        x=data.frame(age = age.seq)) %>%
                         as.data.frame() %>%
                         mutate(smooth = 'lambda1') %>%
                         rename(.fitted = age.1)
@@ -308,7 +326,7 @@ Plot the smoothing spline
 
 #ggplot(data = hd.temp.summer,aes(x=age))+
  # geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
-  #
+  # geom_line()
  #scale_x_continuous(breaks=seq(0,12,3)) +
  #theme_bw()
   

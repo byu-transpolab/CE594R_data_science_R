@@ -285,38 +285,38 @@ Use nlsBootPredict
 
 hd.temp.boot.predict <- nlsBootPredict(hd.boot,newdata=temp.age,interval='confidence')
 
-
-
 ```
 
 Then bind the predicted confidence intervals with the model prediction
 
 ```{r}
-hd.temp.predict.intervals <- 
-  
+hd.temp.predict.intervals <- hd.temp.predictions %>%
+                             bind_cols(hd.temp.boot.predict)
   
 ```
 
 Question: Why is bootstrapping is a good approach for estimating the uncertainty of the predictions?
 
-Answer:
+Answer: It works for models with non-normal and non-identically distributed residuals
 
 Plot the results (with respect to age)
 
-Have separate panels for each temperature Plot age on the x-axis Plot NOx emissions on the y-axis Use geom_jitter to plot the data Use geom_line and geom_ribbon to plot the predicted values
+Have separate panels for each temperature 
+Plot age on the x-axis 
+Plot NOx emissions on the y-axis Use geom_jitter to plot the data Use geom_line and geom_ribbon to plot the predicted values
 
 ```{r}
-ggplot(,
-  #aes(
-  #geom_jitter( +
-  #geom_line(
-  #geom_ribbon(
-  #facet_wrap() +
-  #labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
-  #scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
-  #theme_bw() +
-  #theme(legend.position = "bottom")+
-  #scale_x_continuous(breaks = seq(0, 12, by = 1))
+ggplot(data = hd.temp,
+  aes(x=age,color= factor(avg.temp))) + 
+  geom_jitter(aes(y=ER),width=.2) +
+  geom_line(data=hd.temp.predict.intervals,aes(y=.fitted),color='black')+
+  geom_ribbon(data=hd.temp.predict.intervals, aes(ymin = `2.5%`, ymax=`97.5%`),fill='lightgrey',alpha=0.5)+
+  facet_wrap(~avg.temp) +
+  labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
+  scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
+  theme_bw() +
+  theme(legend.position = "bottom")+
+  scale_x_continuous(breaks = seq(0, 12, by = 1))
 
 ```
 
@@ -325,14 +325,15 @@ Predict confidence intervals with respect to temperature (from 0 to 100 F)
 Create a temp.age.2 using expand_grid for all temperatures
 
 ```{r}
-# temp.age.2 <- expand_grid(
+temp.age.2 <- expand_grid(avg.temp = 0:100, age = 0:12)
 
 ```
 
 Find the model fit using augment and temp.age.2
 
 ```{r}
-# hd.temp.predictions.2 <- 
+
+hd.temp.predictions.2 <- augment(nlsfit, newdata=temp.age.2)
 
 ```
 
@@ -340,14 +341,15 @@ Predict the confident intervals using nlsBootPredict
 
 ```{r}
 
-hd.temp.boot.predict.2 <- 
+hd.temp.boot.predict.2 <- nlsBootPredict(hd.boot,newdata=temp.age.2,interval='confidence')
 
 ```
 
 Bind the confidence interval predictions to the predictions of the means
 
 ```{r}
-hd.temp.predict.intervals.2 <- 
+hd.temp.predict.intervals.2 <- hd.temp.predictions.2 %>%
+                               bind_cols(hd.temp.boot.predict.2)
   
 ```
 
@@ -359,18 +361,18 @@ Have separate panels for each age Plot ave.temp on the x-axis Plot NOx emissions
 
 names(hd.temp)
 
-#ggplot(
-  #aes(
-  #geom_jitter(width = 0.2, height=0) +
-  #geom_line(data = hd.temp.predict.intervals.2, 
-  #          aes(y = .fitted), color = "black", size = 1.2) +
-  #geom_ribbon(data = hd.temp.predict.intervals.2,
-   #           aes(y=.fitted,ymin = `2.5%`,ymax = `97.5%`),alpha=0.3, color='grey') +
-  #facet_wrap(~age, scales='free_y') +
-  #  labs(y = "NOX Emission Rate (g/kg of fuel)")+
-  #scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
-  #theme_bw() +
-  #theme(legend.position = "bottom")
+ggplot()+
+  geom_jitter(data=hd.temp, aes(x=avg.temp,y=ER,color=factor(avg.temp)),
+                                width = 10, height=0) +
+  geom_line(data = hd.temp.predict.intervals.2, 
+            aes(x=avg.temp,y = .fitted), color = "black", size = 1.2) +
+  geom_ribbon(data = hd.temp.predict.intervals.2,
+             aes(x=avg.temp,y=.fitted,ymin = `2.5%`,ymax = `97.5%`),alpha=0.3, color='grey') +
+  facet_wrap(~age, scales='free_y') +
+    labs(y = "NOX Emission Rate (g/kg of fuel)")+
+  scale_color_manual(values = c("24" = "skyblue2", "82.5" = "orange2"))+
+  theme_bw() +
+  theme(legend.position = "bottom")
   
 
 ```

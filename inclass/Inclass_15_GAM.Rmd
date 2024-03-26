@@ -1,0 +1,144 @@
+---
+title: "Inclass_14_GAM"
+author: "Darrell Sonntag"
+date: "2024-03-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+Now let's look at the Generalized Additive Models
+
+See Equation 7.16 in Statistical Learning
+
+Let's fit a smoothing spline to our data using the gam() function in mgcv
+
+```{r}
+library(mgcv)
+
+?gam()
+
+gam.age <- gam(ER~s(age), data= hd.temp.summer)
+
+summary(gam.age)
+
+plot(gam.age)
+
+```
+
+mgcv uses cross validation to determine the optimal lambda smoothing value. 
+
+
+This looks the same as before:
+
+Now let's fit a gam with multiple terms age and avg.temperature
+
+```{r}
+
+# gam.age.temp <- 
+
+summary(gam.age.temp)
+
+plot(gam.age.temp)
+
+```
+Plot the fitted values 
+
+```{r}
+age.seq <- seq(0,12,.1)
+
+temp.age <- expand_grid(avg.temp = c(24,82.5),
+                                   age = seq(0, 12, by = 1))
+
+```
+
+Use the augment function
+
+```{r}
+
+gam.predict = augment(gam.age.temp, newdata=temp.age,interval='confidence',se.fit=TRUE) 
+
+```
+
+Plot the data of the predictions on top of the actual data
+
+```{r}
+ggplot(hd.temp,
+  aes(x = age, y = ER, color = Campaign)) +
+  geom_jitter(width = 0.2, height=0) +
+  geom_line(data = gam.predict, aes(y = .fitted, color = "black"), size = 1.2) +
+  geom_ribbon(data = gam.predict,aes(y=.fitted,ymin = .fitted-2*.se.fit,ymax = .fitted+2*.se.fit),alpha=0.3,color='grey') +
+  labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
+  facet_wrap(~avg.temp, ncol = 1) +
+  scale_color_manual(values = c("Winter 2020" = "skyblue2", "Summer 2023" = "orange2"))+  
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25),
+        legend.position = "bottom", legend.justification = "center",
+        axis.text = element_text(size = 16),  # Adjust angle here
+        axis.title = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        strip.text = element_text(size = 14))+
+  scale_x_continuous(breaks = seq(0, 12, by = 1))
+
+```
+
+
+## we can also add interaction terms using the ti function
+
+<https://drmowinckels.io/blog/2019/plotting-gamm-interactions-with-ggplot2/>
+
+```{r}
+
+gam.age.temp.2 <-gam(ER~s(age) + avg.temp + ti(age*ave.temp), data= hd.temp)
+
+summary(gam.age.temp.2)
+
+plot(gam.age.temp.2)
+
+```
+Look at the coefficients
+
+```{r}
+names(gam.age.temp.2)
+
+gam.age.temp.2$coefficients
+```
+Use the augment function
+
+```{r}
+
+gam.predict.2 = augment(gam.age.temp.2,
+                        newdata=temp.age,interval='confidence',se.fit=TRUE) 
+
+```
+
+Plot the model predictions
+
+```{r}
+ggplot(hd.temp,
+  aes(x = age, y = ER, color = Campaign)) +
+  geom_jitter(width = 0.2, height=0) +
+  geom_line(data = gam.predict.2, aes(y = .fitted, color = "black"), size = 1.2) +
+  geom_ribbon(data = gam.predict.2,aes(y=.fitted,ymin = .fitted-2*.se.fit,ymax = .fitted+2*.se.fit),alpha=0.3,color='grey') +
+  labs(x = "Vehicle Age", y = "NOX Emission Rate (g/kg of fuel)")+
+  facet_wrap(~avg.temp, ncol = 1) +
+  scale_color_manual(values = c("Winter 2020" = "skyblue2", "Summer 2023" = "orange2"))+  
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 25),
+        legend.position = "bottom", legend.justification = "center",
+        axis.text = element_text(size = 16),  # Adjust angle here
+        axis.title = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        strip.text = element_text(size = 14))+
+  scale_x_continuous(breaks = seq(0, 12, by = 1))
+
+```
+
+
+
