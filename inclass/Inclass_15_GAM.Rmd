@@ -35,11 +35,11 @@ mgcv uses cross validation to determine the optimal lambda smoothing value.
 
 This looks the same as before:
 
-Now let's fit a gam with multiple terms age and avg.temperature
+Now let's fit a gam with multiple terms age and a linear effect for avg.temperature (we don't have enough variation in avg. temperature to fit a smoothing spline for temperature)
 
 ```{r}
 
-# gam.age.temp <- 
+gam.age.temp <- mgcv::gam(ER~s(age) + avg.temp, data= hd.temp)
 
 summary(gam.age.temp)
 
@@ -140,5 +140,12 @@ ggplot(hd.temp,
 
 ```
 
+Question
 
+We now have fit several non-linear functions to the HD NOx emissions by age. 
 
+How does the shape of the GAM predictions, compare to the exponential, regression splines, and smoothing spline (with lambda determined with cross validation)?
+
+Which one do you think provides the best fit? Why?
+
+Answer: 

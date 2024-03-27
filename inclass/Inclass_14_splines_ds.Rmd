@@ -121,7 +121,7 @@ Fit a linear regression using the basis functions
 
 ```{r}
 
-#spline.fit <- 
+spline.fit <- lm(ER ~ bs(age,knots=c(3,6,9)), data = hd.temp.summer)
 
 summary(spline.fit)
 
@@ -145,13 +145,13 @@ Create coefficient dataframe with basis names and coefficients (update with name
 
 ## Create vector of splines.names (X1: X6)
 
-# spline.names <-
+spline.names <- 1:6
 
 ## bind spline coefficients to the names in a data.frame
 
-# spline.coeff.est <- 
+spline.coeff.est <- bind_cols(spline.coeff$estimate[2:7],spline.names)
 
-#names(spline.coeff.est) <- c('coefficient','basis')
+names(spline.coeff.est) <- c('coefficient','basis')
 
 
 ```
@@ -159,10 +159,10 @@ Merge coefficients with bs.age.long, and multiply the values by the coefficients
 
 ```{r}
 
-#bs.fit <- bs.age.long %>%
-          #left_join(
-          #mutate(
-
+bs.fit <- bs.age.long %>%
+          mutate(basis = as.integer(basis)) %>%
+          left_join(spline.coeff.est,by='basis') %>%
+          mutate(scaled_basis = coefficient * value)
 
 ```
 
@@ -170,10 +170,10 @@ Plot the scaled basis functions
 
 ```{r}
 
-#ggplot(
-  #geom_line() +
-  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
-  #scale_x_continuous(breaks=seq(0,12,3) )
+ggplot(data=bs.fit,aes(x=age,y=scaled_basis,color=factor(basis)))+
+  geom_line() +
+  geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  scale_x_continuous(breaks=seq(0,12,3))
 
 ```
 Calculate the regression spline by adding the points to the intercept
@@ -187,14 +187,15 @@ See dplyr cheat sheet c_across
 
 ```{r}
 
-names(bs.fit.wide)
+names(bs.fit)
 
 bs.fit.wide <- bs.fit %>%
-               #select(age,basis,basis.fit) %>%
-               #pivot_wider( %>%
-               #rowwise() %>%
-               #mutate(spline.sum = sum(c_across(X1:X6))) %>%
-               #mutate(spline.fit = 
+               select(age,basis,scaled_basis) %>%
+               pivot_wider(names_from = basis, values_from = scaled_basis) %>%
+               rowwise() %>%
+               mutate(spline.sum = sum(c_across(2:7))) %>%
+               mutate(spline.fit = spline.coeff$estimate[1] 
+                      + spline.sum) 
 
 View(bs.fit.wide)
 
@@ -204,24 +205,24 @@ Plot the regression fit
 
 ```{r}
 
-#ggplot(data = bs.fit,aes(x=age,y=basis.fit,color=basis))+
+ggplot(data = bs.fit,aes(x=age,y=scaled_basis,color=factor(basis)))+
   # plot the scaled basis functions
-  #geom_line() +
+  geom_line() +
     # plot the regression spline
-  #geom_line( 
-  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
-  #scale_x_continuous(breaks=seq(0,12,3) )
+  geom_line(data = bs.fit.wide, aes(y=spline.fit), color='black', size =1)+
+  geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  scale_x_continuous(breaks=seq(0,12,3) )
 
 ```
 Now plot it along side the raw data:
 
 ```{r}
 
-#ggplot(data = hd.temp.summer,aes(x=age,y=ER))+
-  #geom_jitter(width = 0.2, color = 'orange2') +
-  #geom_line(
-  #geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
-  #scale_x_continuous(breaks=seq(0,12,3) )
+ggplot(data = hd.temp.summer,aes(x=age,y=ER))+
+  geom_jitter(width = 0.2, color = 'orange2') +
+    geom_line(data = bs.fit.wide, aes(y=spline.fit), color='black', size =1)+
+  geom_vline(xintercept=c(0,3,6,9,12),linetype='dashed',alpha=0.5)+
+  scale_x_continuous(breaks=seq(0,12,3) )
 
 ```
 We can also use predict and calculate 95% Confidence intervals. 
@@ -230,9 +231,12 @@ We can also use predict and calculate 95% Confidence intervals.
 library(broom)
 
 ## you can use predict or augment. I used augment here
-## new.data = data.frame(age = age.seq)
+newdata = data.frame(age = age.seq)
 
-#spline.predict = 
+
+spline.predict = augment(spline.fit,
+                         newdata=data.frame(age=age.seq),
+                         interval = 'confidence')
 
 ```
 
@@ -240,13 +244,12 @@ Now plot again with the error bars
 
 ```{r}
 
-#ggplot(data = hd.temp.summer,aes(x=age))+
-  #geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
-  #geom_line(
-  #geom_ribbon(
+ggplot(data = hd.temp.summer,aes(x=age))+
+  geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
+  geom_line(data=spline.predict,aes(y=.fitted), color='black', width = 0.8)+
+  geom_ribbon(data=spline.predict,aes(ymin=.lower,ymax=.upper), fill='grey', alpha=0.5)+
   scale_x_continuous(breaks=seq(0,12,3)) +
   theme_bw()
-  
 
 ```
 
@@ -276,11 +279,14 @@ Let's try a smoothing spline, and a range of lambda's (0.001 to 10)
 
 ```{r}
 
-smooth.spline.cv <-
+smooth.spline.cv <- with(hd.temp.summer, 
+                        smooth.spline(age,ER,cv=TRUE))
 
-smooth.spline.lambda1 <- 
+smooth.spline.lambda1 <- with(hd.temp.summer,
+                              smooth.spline(age,ER,lambda = 10))
 
-smooth.spline.lambda2 <-
+smooth.spline.lambda2 <- with(hd.temp.summer,
+                              smooth.spline(age,ER,lambda=0.001))
 
 
 summary(smooth.spline.cv)
@@ -297,38 +303,41 @@ Use predict() which includes predict.smooth.spline
 ## note: augment() doesn't work
 ## use predict()
 
-smooth.spline.predict.cv = #predict(smooth.spline.cv, 
-                         x=data.frame(age = age.seq)) 
-                          #  convert from list to data.frame
-                         # add identifier for smooth type
-                         # rename age.1 as .fitted 
-
+smooth.spline.predict.cv = predict(smooth.spline.cv, 
+                            x=data.frame(age = age.seq)) %>%
+                            as.data.frame() %>%
+                            mutate(lambda = 'cv') %>%
+                            rename(.fitted = age.1)
+                            
+                       
 smooth.spline.predict.lambda1 = predict(smooth.spline.lambda1,
                         x=data.frame(age = age.seq)) %>%
                         as.data.frame() %>%
-                        mutate(smooth = 'lambda1') %>%
+                        mutate(lambda= '10') %>%
                         rename(.fitted = age.1)
 
                       
 smooth.spline.predict.lambda2 = predict(smooth.spline.lambda2, 
                         x=data.frame(age = age.seq)) %>%
                         as.data.frame() %>%
-                        mutate(smooth = 'lambda2') %>%
+                        mutate(lambda = '0.001') %>%
                         rename(.fitted = age.1)
 
 
-smooth.spline.predict <- #bind_rows
+smooth.spline.predict <- bind_rows(smooth.spline.predict.cv,
+                                   smooth.spline.predict.lambda1,
+                                   smooth.spline.predict.lambda2)
 
 ```
 Plot the smoothing spline
 
 ```{r}
 
-#ggplot(data = hd.temp.summer,aes(x=age))+
- # geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
-  # geom_line()
- #scale_x_continuous(breaks=seq(0,12,3)) +
- #theme_bw()
+ggplot(data = hd.temp.summer,aes(x=age))+
+ geom_jitter(aes(y=ER),width = 0.2, color = 'orange2') +
+ geom_line(data=smooth.spline.predict, aes(y=.fitted,color=lambda))+
+ scale_x_continuous(breaks=seq(0,12,3)) +
+ theme_bw()
   
 ```
 
