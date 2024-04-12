@@ -1,0 +1,296 @@
+---
+title: "Model Summary Lesson"
+author: "Emily Youngs"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
+  markdown:
+    wrap: 72
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load needed packages
+library(modelsummary)
+library(tidyverse)
+library(tinytable)
+```
+
+The package offers many intuitive and powerful utilities to customize
+the information reported in a summary table. You can rename, reorder,
+subset or omit parameter estimates; choose the set of goodness-of-fit
+statistics to include; display various “robust” standard errors or
+confidence intervals; add titles, footnotes, or source notes; insert
+stars or custom characters to indicate levels of statistical
+significance; or add rows with supplemental information about your
+models.
+
+More from CRAN:
+<https://cran.r-project.org/web/packages/modelsummary/modelsummary.pdf>
+
+# Data Introduction
+
+The sample dataset can be found:
+<https://vincentarelbundock.github.io/Rdatasets/doc/HistData/Guerry.html>
+
+```{r}
+# Sample Dataset
+url <- 'https://vincentarelbundock.github.io/Rdatasets/csv/HistData/Guerry.csv'
+```
+
+```{r}
+# If the population is less than the median, mark the Small column as TRUE
+dat <- read.csv(url) %>%
+  mutate(Small = Pop1831 > median(Pop1831)) %>%
+  select(Donations, Literacy, Commerce, Crime_pers, Crime_prop, Clergy, Small)
+```
+
+# Data Summary
+
+## Skim
+
+This provides a quick overview of the data. It gives mean, standard
+deviation, minimum, median, maximum, and a histogram to view the overall
+distribution and spread of the data.
+
+```{r}
+# datasummary_skim: Quick overview (“skim”) of a dataset.
+datasummary_skim(dat)
+```
+
+## DataSummary Balance
+
+With this, you can view the data, summarized in groups. In this case we
+look at the small = TRUE vs the small = FALSE (This was based on the
+50th percentile, so just the top 50% and the bottom 50%).
+
+```{r}
+# datasummary_balance: Balance tables with subgroup statistics and difference in means.
+datasummary_balance(~Small, dat, dinm=FALSE)
+```
+
+## DataSummary
+
+With this you can choose select variable to look at. You can also
+specify which summary statistics you want to look at.
+
+```{r}
+# datasummary: Powerful tool to create (multi-level) cross-tabs and data summaries.
+datasummary(Literacy + Commerce ~ Small * (mean + sd), dat)
+```
+
+## Correlation Tables
+
+Each row and column represent a variable in the dataset and the cells
+display the correlation coefficient between corresponding pairs of
+variables. The Coefficients range from -1 to 1:
+
+-   1 indicates a perfect positive correlation, meaning that as one
+    variable increases, the other variable also increases linearly
+
+-   -1 indicates a perfect negative correlation, meaning that as one
+    variable increases, the other variable decreases linearly
+
+-   0 indicates no linear correlation between the variables
+
+Typically used to identify relationship between variables.
+
+```{r}
+# datasummary_correlation: Correlation tables.
+datasummary_correlation(dat)
+```
+
+Here, overall Commerce and Literacy show the strongest relationship,
+with Commerce being negatively correlated with Literacy. Crime_prop also
+shows some moderate positive correlations with Commerce and Literacy.
+Donations and Clergy have weaker correlations with the other variables
+in the table.
+
+# Model Summary
+
+1.  linear regression lm()
+
+    used for fitting linear regression models where the response
+    variable (dependent variable) is assumed to have a continuous,
+    normally distributed outcome
+
+    assumes that the errors (residuals) follow a normal distribution
+    with constant variance
+
+    generally for relationships between continuous variables
+
+    commonly used for predictive modeling, inference, and understanding
+    the relationship between variables in a dataset
+
+2.  generalized linear models glm()
+
+    more general and can handle a broader range of response variable
+    distributions, including continuous, binary, count, and categorical
+    outcomes
+
+    can handle non-normal response variables and non-constant variance
+
+    suitable for modeling non-linear relationships, binary outcomes
+    (logistic regression), count data (Poisson regression), and
+    categorical outcomes (multinomial or ordinal logistic regression).
+
+## ModelSummary
+
+```{r}
+# modelsummary: Regression tables with side-by-side models.
+mod <- lm(Donations ~ Commerce, data = dat)
+
+modelsummary(mod)
+```
+
+R-squared (R²):
+
+-   R-squared represents the proportion of the variance in the dependent
+    variable that is explained by the independent variables in a
+    regression model.
+
+-   It ranges from 0 to 1, where 0 indicates that the model does not
+    explain any variance in the dependent variable, and 1 indicates that
+    the model explains all the variance.
+
+-   Higher R-squared values indicate a better fit of the model to the
+    data.
+
+Adjusted R-squared (R² Adj.):
+
+-   Adjusted R-squared is a modified version of R-squared that accounts
+    for the number of predictors in the model.
+
+-   It penalizes the inclusion of unnecessary predictors, preventing
+    overfitting.
+
+-   Similar to R-squared, higher values indicate better model fit.
+
+Akaike Information Criterion (AIC):
+
+-   AIC is a measure of the relative quality of a statistical model for
+    a given set of data.
+
+-   It considers both the goodness of fit of the model and the
+    complexity of the model (number of parameters).
+
+-   Lower AIC values indicate better model fit, with the best-fitting
+    model having the lowest AIC.
+
+Bayesian Information Criterion (BIC):
+
+-   BIC, like AIC, is used to compare the goodness of fit of different
+    models.
+
+-   It penalizes model complexity more heavily than AIC, favoring
+    simpler models.
+
+-   As with AIC, lower BIC values indicate better model fit.
+
+Log-Likelihood (Log Lik.):
+
+-   Log-likelihood measures the goodness of fit of a statistical model
+    to a dataset.
+
+-   It represents the logarithm of the likelihood function, which
+    measures how well the model predicts the observed data.
+
+-   Higher log-likelihood values indicate better model fit.
+
+F-statistic (F):
+
+-   The F-statistic is used to test the overall significance of the
+    regression model.
+
+-   It compares the overall fit of the model to a model with no
+    predictors (null model).
+
+-   Higher F-values indicate that the model explains a significant
+    amount of variance in the dependent variable.
+
+Root Mean Square Error (RMSE):
+
+-   RMSE measures the average magnitude of the residuals (the
+    differences between observed and predicted values) in the model.
+
+-   It provides a measure of the model's accuracy in predicting the
+    dependent variable.
+
+-   Lower RMSE values indicate better model performance, with values
+    closer to zero indicating better fit.
+
+```{r}
+# Estimate and compare models
+models <- list(
+    "I" = lm(Literacy ~ Clergy, data = dat),
+    "II" = lm(Literacy ~ Clergy + Crime_prop, data = dat),
+    "III" = lm(Literacy ~ Clergy + Crime_prop + Commerce, data = dat),
+    "IV" = glm(Literacy ~ Clergy + Crime_prop, family = poisson, data = dat),
+    "V" = glm(Literacy ~ Clergy + Crime_prop + Commerce, family = poisson, data = dat)
+)
+
+modelsummary(models)
+```
+
+```{r}
+modelsummary(models,
+             estimate  = "{estimate} [{conf.low}, {conf.high}]",
+             statistic = NULL,
+             coef_omit = "Intercept",
+             gof_omit = "IC|Adj|F")
+```
+
+```{r}
+# Improve the formatting of the datasummary table
+modelsummary(models, 
+             estimate = c("{estimate}({statistic}){stars}"), 
+             gof_omit = "IC|Adj|F") %>% 
+  group_tt(j = list("Linear" = 2:4, "Poisson" = 5:6))
+```
+
+```{r}
+modelsummary(models,
+             estimate = c("{estimate}({statistic}){stars}"), 
+             gof_omit = "IC|Adj|F") %>% 
+    group_tt(j = list("Linear" = 2:4, "Poisson" = 5:6)) %>% 
+    style_tt(i = 3:4, j = 2, background = "teal", color = "white", bold = TRUE)
+```
+
+## Coefficient Plot
+
+```{r}
+coef_models <- models[1:3]
+modelplot(coef_models, coef_omit = "Intercept")
+```
+
+This isn't the best example, because I am trying to predict Literacy
+based on different dependent variables. But if I wanted to try to
+estimate different independent variables based on the same dependent
+variables, then this would be more helpful.
+
+1.  If the error bars overlap between two coefficients from different
+    models:
+
+    no evidence to support a difference in the effects of the dependent
+    variables represented by the overlapping coefficients across the
+    compared models
+
+    dependent variables contribute similarly to the outcome variable in
+    both models
+
+2.  If the error bars include zero:
+
+    dependent variable may not be a significant predictor of the outcome
+    variable in the model
+
+    effect of the dependent variable may not be reliably estimated, and
+    its contribution to the model is uncertain
+
+    the coefficient estimate is not statistically significant at the
+    chosen level

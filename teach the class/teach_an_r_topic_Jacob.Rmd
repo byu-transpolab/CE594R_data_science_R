@@ -1,0 +1,186 @@
+---
+title: "Teach_an_R_Topic_Jacob"
+output: html_document
+date: "2024-04-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(readr)
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(summarytools)
+library(httr)
+library(RSQLite)
+```
+
+# Introduction
+
+This report analyzes forecasted streamflow data using R.
+
+## Data Loading
+
+```{r}
+# Establish a connection to the SQLite database file
+conn <- dbConnect(SQLite(), dbname = "database.db")
+
+# Query data from a table
+query <- "SELECT * FROM ML_streamflow_forecast"
+data <- dbGetQuery(conn, query)
+
+# Close the database connection
+dbDisconnect(conn)
+
+# View the data
+head(data)
+```
+
+
+  Here we are loading streamflow data for long range forecasts from the NWM which means we will have a streamflow value for every 6 hours.
+
+```{r streamflow}
+
+# Load the data
+df <- read_csv("../data/streamflow_edited.csv")
+df_org <- read_csv("../data/mckenzie_river_OR.csv")
+df_org1 <- read_csv("../data/mckenzie_river_OR_apr11.csv")
+df_org2 <- read_csv("../data/mckenzie_river_OR_apr21.csv")
+df_org3 <- read_csv("../data/mckenzie_river_OR_may1.csv")
+```
+
+## Data Preprocessing
+
+  Now we will organize the data and add lagged variables to the dataframe to aid in our ML analysis
+
+```{r}
+
+# List of Member columns
+member_cols <- c('Member 1', 'Member 2', 'Member 3', 'Member 4')
+dataframes <- list(df_org, df_org1, df_org2, df_org3)
+
+# Function to add lagged variables to a dataframe
+add_lagged_variables <- function(dataframe) {
+  for (col in member_cols) {
+    first_value <- dataframe[[col]][1]
+    for (lag in 1:4) {
+      dataframe[[paste0(col, "_Lag", lag)]] <- lag(dataframe[[col]], lag)
+    }
+    lag_cols <- paste0(col, "_Lag", 1:4)
+    dataframe[lag_cols] <- lapply(dataframe[lag_cols], function(x) ifelse(is.na(x), first_value, x))
+  }
+  return(dataframe)
+}
+
+# Apply the function to each dataframe in the list
+modified_dataframes <- lapply(dataframes, add_lagged_variables)
+```
+
+- Now Combine the dataframes that were edited above
+
+```{r}
+# Joining the modified dataframes together
+df_combined <- do.call(rbind, modified_dataframes)
+```
+
+## Data Analysis
+
+```{r}
+# Reshape the dataframe to long format for easy plotting
+combined_df_long <- df_combined %>%
+  pivot_longer(cols = starts_with("Member"), names_to = "Member", values_to = "Value")
+
+# Plot using ggplot
+ggplot(combined_df_long, aes(x = Time, y = Value, color = Member)) +
+  geom_line() +
+  labs(x = "Time", y = "Value", color = "Member") +
+  theme_minimal()
+         
+```
+
+This looks messy. Let's see if we can more easily visualize what is happening here.
+
+```{r}
+# Visualize all columns
+df_summary <- combined_df_long %>%
+  as.data.frame() %>%
+  dfSummary()
+
+# Print the summary
+df_summary
+```
+
+```{r}
+# Plot using ggplot
+ggplot(combined_df_long, aes(x = Time, y = Value, color = Member)) +
+  geom_boxplot() +
+  labs(x = "Time", y = "Value", color = "Member") +
+  theme_minimal()
+```
+
+
+- Next steps for data preparation for machine learning model
+```{r}
+# Define the columns
+X_cols <- c('Member_1', 'Member_2', 'Member_3', 'Member_4', 
+            'Member_1_Lag1', 'Member_1_Lag2', 'Member_1_Lag3', 'Member_1_Lag4',
+            'Member_2_Lag1', 'Member_2_Lag2', 'Member_2_Lag3', 'Member_2_Lag4',
+            'Member_3_Lag1', 'Member_3_Lag2', 'Member_3_Lag3', 'Member_3_Lag4',
+            'Member_4_Lag1', 'Member_4_Lag2', 'Member_4_Lag3', 'Member_4_Lag4',
+            'Time_Fraction')
+
+# Define a function to add Time Fraction and move USGS column
+process_dataframe <- function(df) {
+  df %>%
+    mutate(Time_Fraction = ((row_number() %% 120) + 1) / 120) %>%
+    relocate(USGS, .after = last_col())
+}
+
+# Apply the function to each dataframe
+dataframes <- lapply(modified_dataframes, process_dataframe)
+
+# Joining the modified dataframes together
+df_combined1 <- do.call(rbind, dataframes)
+
+```
+
+
+Save a copy to a SQlite Database
+
+```{r}
+# Write dataframe to SQLite database
+DBI::dbWriteTable(conn = dbConnect(RSQLite::SQLite(), "database.db"), 
+                  name = "ML_streamflow_forecast", 
+                  value = as.data.table(df_combined1), 
+                  overwrite = TRUE)
+
+# Check if the database file exists
+database_path <- "database.db"
+if (file.exists(database_path)) {
+  print(paste("Database file location:", normalizePath(database_path)))
+} else {
+  print("Database file does not exist or the path is incorrect.")
+}
+```
+
+Now split data into features/predicting values and target values
+
+```{r}
+# Split the data into X and y
+X <- df_org2[, ..X_cols]
+y <- df_org2$USGS
+
+X1 <- df_org[, ..X_cols]
+y1 <- df_org$USGS
+
+X2 <- df_org1[, ..X_cols]
+y2 <- df_org1$USGS
+
+X3 <- df_org3[, ..X_cols]
+y3 <- df_org3$USGS
+
+X4 <- df1[, ..X_cols]
+y4 <- df1$USGS
+```
+

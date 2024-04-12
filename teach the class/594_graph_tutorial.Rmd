@@ -1,0 +1,153 @@
+---
+title: "Introduction to ggraph and tidygraph"
+author: "Kamryn Mansfield"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE,
+                      message = FALSE)
+```
+
+## Load libraries
+```{r}
+library(tidyverse)
+library(ggraph)
+library(tidygraph)
+
+```
+## Plotting networks
+
+I had a homework problem where I needed to find the traffic volumes and times it took to get from zones A and B to zone D as shown in the figure. 
+
+![](../figs/init_net.png)
+
+I was able to plot the network in r. 
+![](../figs/loaded_network.png)
+
+
+In this tutorial, I will use ggraph and tidygraph to plot a network. Below are some resources to learn a little more about what they do. 
+
+-   ggraph <https://ggraph.data-imaginist.com/>
+-   tidygraph <https://tidygraph.data-imaginist.com/>
+
+To make networks, ggraph needs information about the nodes and edges of the data. 
+The edges are the lines connecting the nodes.
+
+We will start by creating the node and edge data using the as_tble_graph function from tidygraph. 
+
+It will convert a datafram with to from variables into a node and edge format, or it will convert a matrix to the same format. 
+
+```{r}
+network_df <- data.frame(from = c("A", "A","A",
+                                  "B", "B","B",
+                                  "C","C","C"), 
+                         to = c("A","B","C",
+                                "A","B","C",
+                                "A","B","C"),
+                         volumes = c(30, 20, 15,
+                                     15, 25, 12, 
+                                     5, 18, 22))
+
+network_mtx <- matrix(c(10,20,30,
+                        15,25,12,
+                        5,18,22), 
+                      nrow = 3,
+                      byrow = T)
+
+?as_tbl_graph
+
+df_tbl_graph <- network_df %>% as_tbl_graph()
+
+mtx_tbl_graph <- network_mtx %>% as_tbl_graph() %>% 
+  mutate(name = c("A","B","C"))
+
+```
+
+Using ggraph
+```{r}
+
+ggraph(mtx_tbl_graph) +
+  geom_edge_link()
+
+
+ggraph(mtx_tbl_graph) +
+  scale_edge_color_distiller(palette = "Reds") +
+  geom_edge_link(aes(color = weight, width = weight),
+                 arrow = arrow(type = "open"), 
+                 end_cap = circle(1,"cm")) +
+  geom_node_point(size = 7)
+
+```
+
+Making it look nice
+```{r}
+
+ggraph(df_tbl_graph) +
+  geom_edge_link(aes(color = volumes, width = volumes),arrow = arrow(type = "closed", length = unit(.5, "cm")), 
+                 end_cap = circle(1,"cm")) +
+  geom_node_point(size = 7) +
+  geom_node_text(aes(label = name), color = "white") +
+  theme_void()
+```
+
+geom_edge_fan
+```{r}
+ggraph(df_tbl_graph) +
+  geom_edge_fan(aes(color = volumes, width = volumes),arrow = arrow(type = "closed", length = unit(.5, "cm")), 
+                 end_cap = circle(1,"cm")) +
+  geom_node_point(size = 7) +
+  geom_node_text(aes(label = name), color = "white") +
+  theme_void()
+```
+
+geom_edge_diagonal
+```{r}
+ggraph(df_tbl_graph) +
+  geom_edge_diagonal(aes(color = volumes, width = volumes),arrow = arrow(type = "closed", length = unit(.5, "cm")), 
+                 end_cap = circle(1,"cm")) +
+  geom_node_point(size = 7) +
+  geom_node_text(aes(label = name), color = "white") +
+  theme_void()
+```
+
+
+
+Some code that I used to make custom colors
+```{r}
+
+df_tbl_graph <- df_tbl_graph %>% 
+  mutate(node_size = c(4, 6, 8))
+
+ggraph(df_tbl_graph) +
+  geom_edge_diagonal(aes(color = volumes, width = volumes),arrow = arrow(type = "closed", length = unit(.5, "cm")), 
+                 end_cap = circle(1,"cm")) +
+  geom_node_point(aes(size = node_size)) +
+  geom_node_text(aes(label = name), color = "white") +
+  theme_void()
+
+
+
+
+
+
+
+# network %>% 
+#   ggraph() +
+#   scale_edge_colour_gradient(
+#   low = "grey",
+#   high = "darkred",
+#   space = "Lab",
+#   na.value = "grey50",
+#   guide = "edge_colourbar",
+#   aesthetics = "edge_colour"
+# ) +
+#   geom_edge_fan0(aes(colour = Volumes, width = Times))+geom_node_label(aes(label = name),
+#                   label.padding = unit(0.5, "lines"),
+#                   label.r = unit(.7, "lines")) +
+#   theme_void()
+# ggsave("images/loaded_network.png")
+
+```

@@ -1,0 +1,360 @@
+---
+title: "Teach in R"
+author: "Amber Allen"
+date: "2024-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+#install.packages("plotly")
+library(plotly)
+library(tidyverse)
+
+ 
+hd.temp <- read_csv("..//..//CE594R_data_science_R//data//HD.UT.TEMP.NOX.csv")
+summer.2022.IM <- read_csv("..//..//CE594R_data_science_R//data//summer.2022.IM.csv")
+
+```
+
+## How to use plotly()
+
+The plotly() package in R can be used to make a variety of interactive graphs and visualizations in R. This website <https://plotly.com/r/basic-charts/> has a lot of good example plots and tutorials for how to best use plotly. Here are a few quick examples:
+
+### Scatter Plots
+
+Here's a scatter plot using one of the base data frames in R, iris.
+
+```{r}
+plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, type = 'scatter', mode = 'markers')
+
+```
+
+You can also add a lot of specific customizations to your plot to make it look nice:
+
+```{r}
+plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, type = 'scatter', mode = 'markers',
+               marker = list(size = 10, #size of the points
+                             color = 'thistle', # point color
+                             line = list(color = 'gray30', # point outline color and width
+                                         width = 1))) %>% 
+  layout(title = 'Nicer Scatter Plot', #plot title
+         yaxis = list(zeroline = FALSE, title = "Petal Length"), #determines whether line is drawn across specified axis
+         xaxis = list(zeroline = FALSE))
+
+
+```
+
+We can also change the symbols to further distinguish our data
+
+```{r}
+plot_ly(data = iris, x = ~Sepal.Length, y = ~Petal.Length, type = 'scatter', mode = 'markers',
+        symbol = ~Species, symbols = c('circle','x','o'), color = I('thistle'),
+              marker = list(size = 10)) %>% 
+  layout(title = 'Nicer Scatter Plot', #plot title
+         yaxis = list(zeroline = FALSE), #determines whether line is drawn across specified axis
+         xaxis = list(zeroline = FALSE))
+```
+
+```{r, echo = FALSE}
+# first, summarize the data so it can be plot
+
+hd.temp.summary <- hd.temp %>% 
+  group_by(avg.temp, age, Campaign, pollutant) %>%
+  summarize(
+    mean = round(mean(ER, na.rm = TRUE), digits = 2),
+    median = round(median(ER, na.rm = TRUE), digits = 2),
+    sd = round(sd(ER, na.rm = TRUE), digits = 2),
+    n = sum(!is.na(ER)),
+    min = round(min(ER, na.rm = TRUE), digits = 2),
+    max = round(max(ER, na.rm = TRUE), digits = 2)
+  ) %>%
+  mutate(tcrit = round(qt(0.975, df = (n - 1)), digits = 2)) %>%
+  mutate(bound = round(tcrit * sd / sqrt(n), digits = 2)) %>%
+  mutate(lower.95 = round(mean - bound, digits = 2)) %>%
+  mutate(upper.95 = round(mean + bound, digits = 2))
+
+
+age_levels <- c(12:0) # making levels for age so the graphs look nice
+
+hd.temp.summary  <- hd.temp.summary  %>%
+  mutate(age = factor(age, levels = age_levels)) # factoring age by levels
+
+hd.temp.summary$Campaign <- as.factor(hd.temp.summary$Campaign)
+
+```
+
+### Bubble Charts
+
+```{r}
+
+colors <- c("skyblue2", "orange2")
+plot_ly(hd.temp.summary, x = ~age, y = ~mean, text = ~Campaign, type = 'scatter', mode = 'markers',
+        color = ~Campaign, 
+        colors = colors, 
+        size = ~n, sizes = c(10, 50), # adding the size makes it a 'bubble' chart
+        marker = list(opacity = 0.5, sizemode = 'diameter'))%>% 
+  layout(title = 'NOx emissions by Age',
+                      xaxis = list(showgrid = TRUE),
+                      yaxis = list(showgrid = TRUE))
+
+# you can add color by making a color vector or by calling them directly, like below
+plot_ly(hd.temp.summary, x = ~age, y = ~mean, text = ~Campaign, type = 'scatter', mode = 'markers',
+        color = ~Campaign, 
+        colors = c("skyblue2", "orange2"), 
+        size = ~n, sizes = c(10, 50),
+        marker = list(opacity = 0.5, sizemode = 'diameter'))%>% 
+  layout(title = 'NOx emissions by Age',
+                      xaxis = list(showgrid = TRUE, title = "Vehicle Age"), # you can also add axis titles
+                      yaxis = list(showgrid = TRUE), title = "Mean NOx Emissions (g/kg of fuel)")
+```
+
+Bubble charts may not be the best way to visualize my data, but here's an example from <https://plotly.com/r/bubble-charts/> that graphs gender gap earnings
+
+```{r}
+data <- read.csv("https://raw.githubusercontent.com/plotly/datasets/master/school_earnings.csv")
+
+fig <- plot_ly(data, x = ~Women, y = ~Men, text = ~School, type = 'scatter', mode = 'markers', color = ~Gap, 
+               colors = 'Reds', # uses this colors pallet to get a gradient
+        marker = list(size = ~Gap, opacity = 0.5))
+fig <- fig %>% layout(title = 'Gender Gap in Earnings per University',
+         xaxis = list(showgrid = FALSE),
+         yaxis = list(showgrid = FALSE))
+
+fig
+```
+
+### Graphing Error Bars
+
+You can also add error bars to your plot using the error_y function:
+
+```{r}
+plot_ly(hd.temp.summary, x = ~age, y = ~mean, text = ~Campaign, type = 'scatter', mode = 'markers',
+        color = ~Campaign, 
+        colors = c("skyblue2", "orange2"),
+        marker = list(size = 10),
+        error_y = ~list(array = c(lower.95, upper.95), color = 'black'))%>% 
+  layout(title = 'NOx emissions by Age', mode = "group",
+                      xaxis = list(showgrid = TRUE, title = "Vehicle Age"), # you can also add axis titles
+                      yaxis = list(showgrid = TRUE, title = "Mean NOx Emissions (g/kg of fuel)"))
+```
+
+### Pie Charts
+
+```{r, echo = FALSE}
+im.pcnt <- summer.2022.IM %>%
+  group_by(Compliance) %>%
+  summarize(n = n())
+```
+
+```{r}
+
+plot_ly(im.pcnt, labels = ~Compliance, values = ~n, type = 'pie', # you can specifiy pie chart in type 
+        marker = list(colors = c("#4CAF50", "#FFEB3B", "#8B0000"))) %>% 
+  layout(title = 'IM Program Compliance in Utah',
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+```
+
+You can add different types of labels for your variables too:
+
+```{r}
+plot_ly(im.pcnt, labels = ~Compliance, values = ~n, type = 'pie', # you can specifiy pie chart in type 
+        textinfo = 'label+percent',
+        textposition = 'inside',
+        hoverinfo = 'text',
+        marker = list(colors = c("#4CAF50", "#FFEB3B", "#8B0000"))) %>% 
+  layout(title = 'IM Program Compliance in Utah',
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+ 
+```
+
+You can also add pie charts using the base plot_ly(), then the add_pie to add your subplots.
+
+```{r, echo = FALSE}
+## valid counts for each pollutant
+valid.counts <- summer.2022.IM %>%
+  group_by(pollutant) %>%
+  summarize(valid = sum(POLLUTANT_FLAG == "V"),
+            invalid = sum(POLLUTANT_FLAG == "X")) %>%
+  pivot_longer(cols = c(valid, invalid), names_to = "Valid", values_to = "Count")
+
+```
+
+Here are subplots of the percent valid measurement we gathered for each pollutant in our 2022 campaign
+
+```{r}
+colors3 <- c("#4CAF50", "#8B0000")
+fig <- plot_ly() %>%
+  add_pie(data = (valid.counts %>%
+            filter(pollutant == "CO")),
+          labels = ~Valid, values = ~Count,
+          name = "CO", domain = list(row = 0, column = 0),
+          marker = list(colors = colors3)) %>%
+  add_pie(data = (valid.counts %>%
+                    filter(pollutant == "HC")),
+          labels = ~Valid, values = ~Count,
+          name = "HC", domain = list(row = 0, column = 1))%>%
+  add_pie(data = (valid.counts %>%
+                    filter(pollutant == "NH3")),
+          labels = ~Valid, values = ~Count,
+          name = "NH3", domain = list(row = 2, column = 0))%>%
+  add_pie(data = (valid.counts %>%
+                    filter(pollutant == "NO")),
+          labels = ~Valid, values = ~Count,
+          name = "NO", domain = list(row = 1, column = 1))%>% 
+  add_pie(data = (valid.counts %>%
+                    filter(pollutant == "NO2")),
+          labels = ~Valid, values = ~Count,
+          name = "NO2", domain = list(row = 1, column = 0))%>% 
+  layout(title = "% Valid Measurement by Pollutant", showlegend = F,grid=list(rows=3, columns=2),
+                xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+fig
+```
+
+### Donut Charts
+
+Donut charts are like pie charts, but with a hole in the middle!
+
+```{r, echo = FALSE}
+df <- summer.2022.IM
+df <- df %>% group_by(Year)
+df <- df %>% summarize(count = n())
+```
+
+Let's make a donut chart of the percent of each model year measured in our summer 2022 campaign:
+
+```{r}
+df %>% plot_ly(labels = ~Year, values = ~count) %>% 
+  add_pie(hole = 0.2, textinfo = 'label+percent')%>% 
+  layout(title = "MY Donut Chart",  showlegend = F,
+                      xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                      yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+# change the size of the pie hole
+df %>% plot_ly(labels = ~Year, values = ~count) %>% 
+  add_pie(hole = 0.6, textinfo = 'label+percent')%>% 
+  layout(title = "MY Donut Chart",  showlegend = F,
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+```
+
+### Boxplots
+
+Boxplots are another way to interpret data. I like having an interactive boxplot, because then you can more easily see the ranges of the data.
+
+```{r}
+plot_ly(data = hd.temp, x = ~age, y = ~ER, type = "box", color = ~Campaign, quartilemethod="exclusive",
+               colors = c("skyblue2", "orange2"))  %>% 
+  layout(boxmode = "group", title = "Boxplots of NOx by Age",
+         xaxis = list(title = "Vehicle Age"),
+         yaxis = list(title = "NOx Emissions (g/kg of fuel)"))
+
+```
+
+You can also change the type of that appear outliers a difference color:
+
+```{r}
+plot_ly(data = hd.temp, x = ~age, y = ~ER, type = "box", boxpoints = 'suspectedoutliers',color = ~Campaign, quartilemethod="exclusive",
+               colors = colors,
+               marker = list(outliercolor = 'red', symbol = 'hexagon', size = 10))  %>% 
+  layout(boxmode = "group", title = "Boxplots of NOx by Age" )
+
+```
+
+Or include all the points that make up the data:
+
+```{r}
+plot_ly(data = hd.temp, x = ~age, y = ~ER, type = "box", boxpoints = 'all',color = ~Campaign, quartilemethod="exclusive",
+               colors = colors,
+               marker = list(size = 10))  %>% 
+  layout(boxmode = "group", title = "Boxplots of NOx by Age" )
+
+```
+
+### Tables
+
+You can also use the plotly package to edit existing tables. There are two main aesthitics you can edit, the table header and the individual cells
+
+```{r}
+plot_ly(
+  type = 'table',
+  header = list(
+    values = names(hd.temp.summary),
+    align = c('left', rep('center', ncol(hd.temp.summary))),
+    line = list(width = 1, color = 'black'),
+    fill = list(color = 'rgb(235, 100, 230)'), # these are the colors for top row
+    font = list(family = "Arial", size = 14, color = "white")),
+  cells = list(
+    values = t(hd.temp.summary),
+    align = c('left', rep('center', ncol(hd.temp.summary))),
+    line = list(color = "black", width = 1),
+    fill = list(
+      color = c('rgb(235, 193, 238)', 'rgba(228, 222, 249, 0.65)'),
+      pattern = c("solid", "solid")
+    ),
+    font = list(family = "Arial", size = 12, color = c("black"))
+  )
+)
+```
+
+You can also manipulate the positions of the columns, colors, text, fill, fonts, etc.
+
+```{r}
+plot_ly(
+  type = 'table',
+  header = list(
+    values = names(hd.temp.summary),
+    align = c('left', rep('center', ncol(hd.temp.summary))),
+    line = list(width = 1, color = 'black'),
+    fill = list(color = '#416aa2'),
+    font = list(family = "Arial", size = 14, color = "white")),
+  cells = list(
+    values = t(hd.temp.summary),
+    align = c('left', rep('center', ncol(hd.temp.summary))),
+    line = list(color = "black", width = 1),
+    fill = list(
+      color = c("#aec7e8", "#d6ecf3"),
+      pattern = c("solid", "solid")
+    ),
+    font = list(family = "Arial", size = 12, color = c("black"))
+  )
+)
+```
+```{r}
+hd.basic.summary
+
+plot_ly(
+  type = 'table',
+  header = list(
+    values = names(hd.basic.summary),
+    align = c('left', rep('center', ncol(hd.basic.summary))),
+    line = list(width = 1, color = 'black'),
+    fill = list(color = '#416aa2'),
+    font = list(family = "Arial", size = 14, color = "white")),
+  cells = list(
+    values = t(hd.basic.summary),
+    align = c('left', rep('center', ncol(hd.basic.summary))),
+    line = list(color = "black", width = 1),
+    fill = list(
+      color = c("#aec7e8", "#d6ecf3"),
+      pattern = c("solid", "solid")
+    ),
+    font = list(family = "Arial", size = 12, color = c("black"))
+  )
+)
+
+
+
+```
+
+
+
+
+
+

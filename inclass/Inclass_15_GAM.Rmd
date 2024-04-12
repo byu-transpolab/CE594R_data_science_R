@@ -42,8 +42,11 @@ Now let's fit a gam with multiple terms age and a linear effect for avg.temperat
 gam.age.temp <- mgcv::gam(ER~s(age) + avg.temp, data= hd.temp)
 
 summary(gam.age.temp)
+gam.age.temp$coefficients
 
 plot(gam.age.temp)
+
+
 
 ```
 Plot the fitted values 
@@ -59,7 +62,7 @@ temp.age <- expand_grid(avg.temp = c(24,82.5),
 Use the augment function
 
 ```{r}
-
+library(broom)
 gam.predict = augment(gam.age.temp, newdata=temp.age,interval='confidence',se.fit=TRUE) 
 
 ```

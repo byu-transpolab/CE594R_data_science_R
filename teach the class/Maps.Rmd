@@ -1,0 +1,226 @@
+---
+title: "Teach The Class, Maps"
+author: "Tim Maughan"
+date: "2024-03-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(cowplot)
+library(osmdata)
+library(sf)
+library(dplyr)
+library(magick)
+library(raster)
+library(leaflet)
+```
+
+```{r}
+mapdata <- map_data("state") %>%
+           filter(region == "nebraska")
+```
+
+```{r}
+gage.locations <- read.csv("J:/groups/flowmagic/Gage Data and Locations/USGSWebsiteGageLatLong - Copy.csv")
+```
+
+```{r}
+map1 <- ggplot() +
+        geom_map(data = mapdata, aes(map_id = region), map = mapdata, fill = NA, color = "black", size = 1) +
+        geom_point(data = gage.locations, aes(x=SiteLongitude, y=SiteLatitude)) +
+        coord_map(xlim = c(-104, -95), ylim = c(40, 43)) +
+        theme_bw() +
+        theme(axis.text.x = element_blank(),
+               axis.text.y = element_blank(),
+               axis.ticks = element_blank(),
+               axis.title.y = element_blank(),
+               axis.title.x = element_blank(),
+               rect = element_blank(),
+               plot.title = element_text(face = "bold")) +
+        labs(title = "Selected USGS Gage Locations in Nebraska", subtitle = "") +
+        theme(panel.grid.major = element_line(colour = "transparent"))
+
+map1
+```
+
+```{r}
+getbb("Nebraska US")
+```
+
+```{r}
+map2 <- ggplot() +
+        geom_map(data = mapdata, aes(map_id = region), map = mapdata, fill = NA, color = "black", size = 1) +
+        geom_point(data = gage.locations, aes(x=SiteLongitude, y=SiteLatitude, color = DrainageArea), size = 2) +
+        scale_color_gradient(low = "grey", high = "blue") +
+        coord_map(xlim = c(-104.05352, -95.30805), ylim = c(39.99998, 43.00148)) +
+        theme_bw() +
+        theme(axis.text.x = element_blank(),
+               axis.text.y = element_blank(),
+               axis.ticks = element_blank(),
+               axis.title.y = element_blank(),
+               axis.title.x = element_blank(),
+               rect = element_blank(),
+               plot.title = element_text(face = "bold", hjust = 0.5)) +
+        labs(title = "Selected USGS Gage Locations in Nebraska", subtitle = "") +
+        theme(panel.grid.major = element_line(colour = "transparent"))
+
+map2
+```
+
+```{r}
+ggdraw() +
+draw_image("J:/groups/flowmagic/Gage Data and Locations/brightspotcdn.byu.jpg", x = 0.3, y=0.3, scale = 0.2) +
+draw_plot(map2)
+```
+
+```{r}
+skew.regions <-  st_read("J:/groups/flowmagic/Bulletin 17C/Skew/ArcGIS Map/Feature Classes/Skew Regions.shp",
+                         stringsAsFactors=FALSE)
+```
+
+```{r}
+st_crs(skew.regions)
+```
+
+```{r}
+# Convert to sf object
+mapdata_sf <- sfheaders::sf_polygon(mapdata, x = "long", y = "lat")
+
+# Assign CRS
+st_crs(mapdata_sf) <- 4326  # Assuming WGS84 (EPSG:4326)
+
+# Check CRS
+st_crs(mapdata_sf)
+```
+
+```{r}
+map3 <- ggplot() +
+        geom_sf(data = mapdata_sf, fill = NA, color = "black", size = 1) +
+        geom_sf(data = skew.regions, aes(fill = Region)) +
+        geom_point(data = gage.locations, aes(x=SiteLongitude, y=SiteLatitude, color = DrainageArea), size = 2) +
+        scale_color_gradient(low = "grey", high = "blue") +
+        coord_sf(xlim = c(-104.05352, -95.30805), ylim = c(39.99998, 43.00148)) +
+        theme_bw() +
+        theme(axis.text.x = element_blank(),
+               axis.text.y = element_blank(),
+               axis.ticks = element_blank(),
+               axis.title.y = element_blank(),
+               axis.title.x = element_blank(),
+               rect = element_blank(),
+               plot.title = element_text(face = "bold", hjust = 0.5)) +
+        labs(title = "Selected USGS Gage Locations in Nebraska", subtitle = "") +
+        theme(panel.grid.major = element_line(colour = "transparent"))
+
+map3
+```
+
+```{r}
+raster <- raster("J:/groups/flowmagic/Bulletin 17C/Skew/ArcGIS Map/Feature Classes/SkewCoefficientes.tif")
+target_crs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+raster_reprojected <- projectRaster(raster, crs = target_crs)
+```
+
+```{r}
+aggregation_factor <- c(10, 10)
+raster_aggregated <- aggregate(raster_reprojected, fact = aggregation_factor, fun = mean)
+raster_aggregated_df <- as.data.frame(raster_reprojected, xy = TRUE)
+```
+
+```{r}
+crs(raster_aggregated)
+```
+
+```{r}
+map4 <- ggplot() +
+        geom_raster(data = raster_aggregated_df, aes(x = x, y = y, fill = SkewCoefficientes)) +
+        geom_sf(data = mapdata_sf, fill = NA, color = "black", size = 2) +
+        geom_point(data = gage.locations, aes(x=SiteLongitude, y=SiteLatitude, color = DrainageArea), size = 2) +
+        scale_fill_gradient(low = "grey", high = "black") +
+        scale_color_gradient(low = "grey", high = "blue") +
+        coord_sf(xlim = c(-104.05352, -95.30805), ylim = c(39.99998, 43.00148)) +
+        theme_bw() +
+        theme(axis.text.x = element_blank(),
+               axis.text.y = element_blank(),
+               axis.ticks = element_blank(),
+               axis.title.y = element_blank(),
+               axis.title.x = element_blank(),
+               rect = element_blank(),
+               plot.title = element_text(face = "bold", hjust = 0.5)) +
+        labs(title = "Selected USGS Gage Locations in Nebraska", subtitle = "") +
+        theme(panel.grid.major = element_line(colour = "transparent"))
+
+map4
+```
+
+```{r}
+# available_features()
+```
+
+```{r}
+# available_tags("highway")
+```
+
+```{r}
+# highway <- getbb("Nebraska US") %>%
+#            opq(timeout = 3500) %>%
+#            # add_osm_feature(key = "highway",
+#            #                 value = c("motorway","primary","secondary",
+#            #                           "tertiary","residential",
+#            #                           "living_street","unclassified")) %>%
+#            add_osm_feature(key = "highway",
+#                            value = c("primary")) %>%
+#            osmdata_sf()
+```
+
+```{r}
+# getbb("Nebraska US")
+```
+
+```{r}
+# map5 <- ggplot() +
+#         geom_sf(data = highway$osm_lines,
+#                 inherit.aes = FALSE,
+#                 color = "black",) +
+#         geom_sf(data = mapdata_sf, fill = NA, color = "black", size = 2) +
+#         coord_sf(xlim = c(-104.05352, -95.30805),
+#                  ylim = c(39.99998, 43.00148),
+#                  expand = FALSE) +
+#         theme(axis.text.x = element_blank(),
+#               axis.text.y = element_blank(),
+#               axis.ticks.x = element_blank(),
+#               axis.title.y = element_blank(),
+#               axis.title.x = element_blank(),
+#               rect = element_blank()) +
+#         theme(panel.grid.major = element_line(colour = "transparent"))
+# 
+# map5
+```
+
+```{r}
+gage.locations <- gage.locations %>%
+                  mutate(popup_info = paste("Site Number:",SiteNumber,"<br/>",
+                                            "Site Name:",SiteName,"<br/>", 
+                                            "Site Longitude:",SiteLongitude,"<br/>",
+                                            "Site Latitude:",SiteLatitude, "<br/>",
+                                            "Drainage Area:",DrainageArea))
+
+colors <- c("grey", "red")
+pal <- colorFactor(colors,gage.locations$DrainageArea)
+
+leaflet()%>%
+  addTiles()%>%
+  addCircleMarkers(data = gage.locations, 
+                   lat = ~SiteLatitude, 
+                   lng = ~SiteLongitude, 
+                   radius = ~2,
+                   popup = ~popup_info,
+                   color = ~pal(DrainageArea))
+```
+
+

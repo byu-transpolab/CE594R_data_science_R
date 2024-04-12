@@ -1,0 +1,129 @@
+---
+title: "Lubridate"
+author: "Connor Hale"
+date: "2024-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+### Date Time
+
+To make a specific date and time, you have multiple options.
+
+Use "as_datetime()" for number of seconds since 1970-01-01 00:00:00 UTC:
+```{r}
+as_datetime(1511870400)
+```
+
+Use "as_date()" for number of days since 1970-01-01 UTC:
+```{r}
+as_date(17498)
+```
+
+Use "hms::as_hms()" for number of seconds since 00:00:00
+```{r}
+hms::as_hms(85)
+```
+
+### Parse Date-Times
+Arrange "y" "d" "m" in any order followed by "hms", "hm", or "h".
+
+```{r}
+ymd_hms("2017-11-28T14:02:00")
+```
+```{r}
+dmy_h("28-11-2017T14")
+```
+
+Alternatively:
+
+Isolate my/ym for month year. Isolate hms, hm, or ms for time only.
+
+Use yq for "year quarter":
+```{r}
+yq("2017:Q4")
+```
+
+### Get Components
+Let's say you need to schedule a presentation at 2:00 PM today (4/2/2024) for a certain class.
+```{r}
+appointment <- data.frame(
+  name = "Presentation", 
+  date_time = ymd_hms("2024-04-02T14:00:00"))
+```
+
+```{r}
+tz(appointment$date_time)
+```
+
+
+What day of the week is it (1-7)?
+```{r}
+day(appointment$date_time)
+```
+What time of day is it?
+```{r}
+hour(appointment$date_time)
+```
+What week of the year?
+```{r}
+week(appointment$date_time)
+```
+Is it a leap year?
+```{r}
+leap_year(appointment$date_time)
+```
+Other:
+Timezone
+Quarter
+AM/PM
+Daylight Savings
+
+### Set Components
+Your professor emails you to let you know that you will be presenting at 3:00 PM on Thursday instead of 2:00 PM on Tuesday.
+Use the "update" function.
+```{r}
+update_appointment <- appointment %>% 
+  mutate(date_time = update(date_time, mday=4, hour=15))
+
+update_appointment$date_time
+```
+Alternative: Add 2 days and 1 hour.
+```{r}
+update_appointment <- appointment %>% 
+  mutate(date_time = date_time + days(2) + hours(1))
+
+update_appointment$date_time
+```
+  
+### Duration
+Your professor says your presentation should last twenty minutes.
+```{r}
+appointment_duration <- update_appointment %>% 
+  mutate(duration = dminutes(20))
+
+appointment_duration$duration
+```
+
+### Time Zones
+Your grandma wants to watch your presentation over zoom, but she lives in Florida. How to convert the time between time zones.
+```{r}
+#Set Time Zone to Mountain Time
+utah_appointment <- appointment_duration %>% 
+  mutate(date_time = force_tz(date_time,tzone="US/Mountain"))
+
+
+florida_appointment <- utah_appointment %>% 
+    mutate(date_time = with_tz(date_time,tzone="US/Eastern"))
+
+print(paste("Dear Grandma, my presentation will be on", florida_appointment$date_time, "and it will last", florida_appointment$duration))
+```
+
+
+
+
