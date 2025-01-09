@@ -217,9 +217,12 @@ by default ggsave saves the last plot to your working directory
 
 use ggsave to save to a the figs directory within your personal repository
 
+When using knit, R assumes the working directory is the directory where the .RMD file is located
+
 ```{r}
 
-ggsave("./figs/hwy.histogram.png",plot=hwy.plot, width = 4, height= 4)
+
+ggsave("../figs/hwy.histogram.png",plot=hwy.plot, width = 4, height= 4)
 
 ```
 

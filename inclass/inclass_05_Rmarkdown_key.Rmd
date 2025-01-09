@@ -52,7 +52,9 @@ Q: What are 3 differences between Markdown Files and scripts? A:
 1.  R Markdown files have text outside of code chunks (generally) and script files need to have text always commented (\#) out.
 2.  Script files output code results in the console, whereas markdown files output in the console and right below the code chunk.
 3.  R Markdown files are made to be knitted whereas script files are not.
-4.  (Bonus) Scripts do not have the header at the top (called a YAML), but Markdown files do.
+4.  Working directory. By default the working directory within a code chunk is where the .RMD file is located. Whereas .R files are by default to the .Rproj file. You can change the default working directory to be the the location of the .Rproj, go to tools -> Global Options -> R Markdown. 
+<https://bookdown.org/yihui/rmarkdown-cookbook/working-directory.html>
+5.  (Bonus) Scripts do not have the header at the top (called a YAML), but Markdown files do.
 
 ## Parts of an R markdown file
 
@@ -194,3 +196,5 @@ Now print out the equation for the volume of a sphere inline with text.
 The volume of a sphere is calculated using $V=\frac{4}{3}\pi r^3$.
 
 Now Hit the ball of string icon to knit the document to an html
+
+### [@usepa2022]

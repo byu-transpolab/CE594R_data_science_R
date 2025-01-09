@@ -30,9 +30,15 @@ In the data folder in the class public repository,
 
 ```{r}
 
-summer.2022.IM <- read_csv("../../CE594R_data_science_R/data/summer.2022.IM.csv") 
+summer.2022.IM <- read_csv("./data/summer.2022.IM.csv") 
 
-summer.2022.nonIM <- read_csv("../../CE594R_data_science_R/data/summer.2022.nonIM.csv") 
+summer.2022.nonIM <- read_csv("./data/summer.2022.nonIM.csv") 
+
+## combine summer.2022.IM and summer.2022.nonIM 
+
+summer.2022 <- bind_rows(summer.2022.IM, summer.2022.nonIM)
+
+
 
 ```
 

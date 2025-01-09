@@ -234,8 +234,7 @@ family_extended_city_state <- family_extended_city_state %>%
                                         age<13 ~ 'child',
                                         age<20 ~'teenager',
                                         TRUE ~ 'adult'
-                                  ) %>%
-                                                            )
+                                  ))
 
 ```
 
